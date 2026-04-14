@@ -1,414 +1,323 @@
-# Directus CLI
+<!-- Improved compatibility of back to top link: See: https://github.com/othneildrew/Best-README-Template/pull/73 -->
 
-CLI client for the Directus API — manage items, schema, auth, and more from the command line.
+<a id="readme-top"></a>
 
-[![Version](https://img.shields.io/npm/v/@face-to-face-it/directus-cli)](https://www.npmjs.com/package/@face-to-face-it/directus-cli)
-[![License](https://img.shields.io/npm/l/@face-to-face-it/directus-cli)](LICENSE)
+<!--
+*** Thanks for checking out this README. If you have a suggestion
+*** that would make this better, please fork the repo and create a pull request
+*** or simply open an issue with the tag "enhancement".
+*** Don't forget to give the project a star!
+*** Thanks again! :D
+-->
 
-## Features
+<!-- PROJECT SHIELDS -->
+<!--
+*** I'm using markdown "reference style" links for readability.
+*** Reference links are enclosed in brackets [ ] instead of parentheses ( ).
+*** See the bottom of this document for the declaration of the reference variables
+*** for contributors-url, forks-url, etc. This is an optional, concise syntax you may use.
+*** https://www.markdownguide.org/basic-syntax/#reference-style-links
+-->
 
-- **Full CRUD operations** — Users, roles, collections, items, files, folders, flows, and more
-- **Schema management** — Snapshot, diff, and apply schema changes
-- **Bulk operations** — Export and import data in JSON, CSV, XML, YAML formats
-- **Multi-profile support** — Manage multiple Directus instances with ease
-- **Automation ready** — Perfect for CI/CD pipelines and scripts
-- **Type-safe** — Built with TypeScript and the official Directus SDK
+[![NPM Version][npm-version-shield]][npm-url]
+[![License][license-shield]][license-url]
+[![Contributors][contributors-shield]][contributors-url]
+[![Forks][forks-shield]][forks-url]
+[![Stargazers][stars-shield]][stars-url]
+[![Issues][issues-shield]][issues-url]
 
-## Installation
+<!-- PROJECT LOGO -->
+<br />
+<div align="center">
+  <a href="https://github.com/Face-to-Face-IT/directus-cli">
+    <img src="https://raw.githubusercontent.com/directus/directus/main/app/public/logo.svg" alt="Logo" width="80" height="80">
+  </a>
 
-### Global Installation (Recommended)
+  <h3 align="center">Directus CLI</h3>
 
-```bash
+  <p align="center">
+    A powerful CLI client for managing Directus instances from the command line
+    <br />
+    <a href="https://www.npmjs.com/package/@face-to-face-it/directus-cli"><strong>View on NPM »</strong></a>
+    <br />
+    <br />
+    <a href="#usage">View Examples</a>
+    &middot;
+    <a href="https://github.com/Face-to-Face-IT/directus-cli/issues/new?labels=bug">Report Bug</a>
+    &middot;
+    <a href="https://github.com/Face-to-Face-IT/directus-cli/issues/new?labels=enhancement">Request Feature</a>
+  </p>
+</div>
+
+<!-- TABLE OF CONTENTS -->
+<details>
+  <summary>Table of Contents</summary>
+  <ol>
+    <li>
+      <a href="#about-the-project">About The Project</a>
+      <ul>
+        <li><a href="#features">Features</a></li>
+        <li><a href="#built-with">Built With</a></li>
+      </ul>
+    </li>
+    <li>
+      <a href="#getting-started">Getting Started</a>
+      <ul>
+        <li><a href="#prerequisites">Prerequisites</a></li>
+        <li><a href="#installation">Installation</a></li>
+      </ul>
+    </li>
+    <li><a href="#usage">Usage</a></li>
+    <li><a href="#commands">Commands</a></li>
+    <li><a href="#roadmap">Roadmap</a></li>
+    <li><a href="#contributing">Contributing</a></li>
+    <li><a href="#license">License</a></li>
+    <li><a href="#contact">Contact</a></li>
+    <li><a href="#acknowledgments">Acknowledgments</a></li>
+  </ol>
+</details>
+
+<!-- ABOUT THE PROJECT -->
+
+## About The Project
+
+The Directus CLI provides a comprehensive command-line interface for managing Directus CMS instances. Built on top of the official Directus SDK, it offers full CRUD operations for all Directus resources, making it perfect for automation, CI/CD pipelines, and day-to-day management tasks.
+
+### Features
+
+- **Complete API Coverage** — 94 commands covering users, roles, collections, items, files, flows, and more
+- **Schema Management** — Snapshot, diff, and apply schema changes with ease
+- **Bulk Operations** — Export and import data in JSON, CSV, XML, or YAML formats
+- **Multi-Profile Support** — Manage multiple Directus instances with saved connection profiles
+- **Type-Safe** — Built with TypeScript and the official Directus SDK for maximum reliability
+- **Automation Ready** — Perfect for CI/CD pipelines and shell scripting
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+### Built With
+
+- [![TypeScript][TypeScript]][TypeScript-url]
+- [![oclif][oclif]][oclif-url]
+- [![Directus][Directus]][Directus-url]
+- [![Node.js][Node.js]][Node-url]
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+<!-- GETTING STARTED -->
+
+## Getting Started
+
+Get up and running with the Directus CLI in minutes.
+
+### Prerequisites
+
+- Node.js 20 or higher
+  ```sh
+  node --version
+  ```
+- A Directus instance (local or remote)
+
+### Installation
+
+#### Global Installation (Recommended)
+
+```sh
 npm install -g @face-to-face-it/directus-cli
 # or
 pnpm add -g @face-to-face-it/directus-cli
 ```
 
-### Local Project Installation
+#### Local Project Installation
 
-```bash
+```sh
 npm install --save-dev @face-to-face-it/directus-cli
 # or
 pnpm add -D @face-to-face-it/directus-cli
 ```
 
-### Using npx (No Installation)
+#### Using npx (No Installation)
 
-```bash
+```sh
 npx @face-to-face-it/directus-cli <command>
 ```
 
-## Quick Start
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-### 1. Authenticate
+<!-- USAGE EXAMPLES -->
 
-```bash
-# Login with email/password
+## Usage
+
+### Quick Start
+
+```sh
+# Authenticate with your Directus instance
 directus-cli auth login https://your-directus.com --email admin@example.com --password secret
 
 # Or use a static token
-directus-cli auth login https://your-directus.com --token your-static-token
-```
+directus-cli auth login https://your-directus.com --token your-token
 
-### 2. Save a Profile (Optional but Recommended)
-
-```bash
-# Save the current connection as a profile
+# Save as a profile for easy reuse
 directus-cli profile add production https://your-directus.com --default
-
-# Now you can use --profile instead of typing the URL
-directus-cli users list --profile production
 ```
 
-### 3. Start Using Commands
+### Common Operations
 
-```bash
+```sh
 # List all users
 directus-cli users list
 
 # Create a collection
 directus-cli collections create articles --note "Blog posts"
 
-# Add a field to the collection
+# Add a field
 directus-cli fields create articles title --type string --required
 
 # Create an item
 directus-cli items create articles '{"title": "Hello World"}'
 
 # Upload a file
-directus-cli files upload ./image.png --folder my-folder
+directus-cli files upload ./image.png --folder uploads
 
 # Export data
 directus-cli bulk export articles --format json --output articles.json
+
+# Apply schema changes
+directus-cli schema snapshot --output ./schema.yaml
 ```
-
-## Commands Reference
-
-### Authentication & Profiles
-
-| Command                    | Description                               |
-| -------------------------- | ----------------------------------------- |
-| `auth login <url>`         | Authenticate with email/password or token |
-| `auth logout`              | Logout and invalidate session             |
-| `auth refresh`             | Refresh access token                      |
-| `auth status`              | Check authentication status               |
-| `profile add <name> <url>` | Add a connection profile                  |
-| `profile list`             | List saved profiles                       |
-| `profile use <name>`       | Set default profile                       |
-| `profile remove <name>`    | Remove a profile                          |
-
-### Users & Permissions
-
-| Command                  | Description                         |
-| ------------------------ | ----------------------------------- |
-| `users list`             | List all users                      |
-| `users get <id>`         | Get user by ID                      |
-| `users create <email>`   | Create a new user                   |
-| `users update <id>`      | Update a user                       |
-| `users delete <id>`      | Delete a user                       |
-| `roles list`             | List all roles                      |
-| `roles create <name>`    | Create a role                       |
-| `roles update <id>`      | Update a role                       |
-| `roles delete <id>`      | Delete a role                       |
-| `policies list`          | List access policies (Directus 11+) |
-| `policies create <name>` | Create a policy                     |
-| `policies update <id>`   | Update a policy                     |
-| `policies delete <id>`   | Delete a policy                     |
-| `permissions list`       | List permissions                    |
-
-### Collections & Fields
-
-| Command                              | Description                                   |
-| ------------------------------------ | --------------------------------------------- |
-| `collections list`                   | List all collections                          |
-| `collections get <name>`             | Get collection details                        |
-| `collections create <name>`          | Create a collection                           |
-| `collections update <name>`          | Update a collection                           |
-| `collections delete <name>`          | Delete a collection                           |
-| `fields list`                        | List fields (optionally filter by collection) |
-| `fields get <collection> <field>`    | Get field details                             |
-| `fields create <collection> <field>` | Create a field                                |
-| `fields update <collection> <field>` | Update a field                                |
-| `fields delete <collection> <field>` | Delete a field                                |
-
-### Items
-
-| Command                                 | Description                           |
-| --------------------------------------- | ------------------------------------- |
-| `items list <collection>`               | List items with filtering and sorting |
-| `items get <collection> <id>`           | Get a single item                     |
-| `items create <collection> <data>`      | Create an item                        |
-| `items update <collection> <id> <data>` | Update an item                        |
-| `items delete <collection> <id>`        | Delete an item                        |
-
-### Files & Folders
-
-| Command                 | Description               |
-| ----------------------- | ------------------------- |
-| `files list`            | List files in the library |
-| `files download <id>`   | Download a file           |
-| `files upload <path>`   | Upload a file             |
-| `folders list`          | List folders              |
-| `folders get <id>`      | Get folder details        |
-| `folders create <name>` | Create a folder           |
-| `folders update <id>`   | Update a folder           |
-| `folders delete <id>`   | Delete a folder           |
-
-### Flows & Operations (Automation)
-
-| Command                           | Description           |
-| --------------------------------- | --------------------- |
-| `flows list`                      | List flows            |
-| `flows get <id>`                  | Get flow details      |
-| `flows create <name>`             | Create a flow         |
-| `flows update <id>`               | Update a flow         |
-| `flows delete <id>`               | Delete a flow         |
-| `flows trigger <id>`              | Trigger a manual flow |
-| `operations list`                 | List operations       |
-| `operations get <id>`             | Get operation details |
-| `operations create <flow> <type>` | Create an operation   |
-| `operations update <id>`          | Update an operation   |
-| `operations delete <id>`          | Delete an operation   |
-
-### Schema Management
-
-| Command                | Description                          |
-| ---------------------- | ------------------------------------ |
-| `schema snapshot`      | Export schema to file                |
-| `schema diff <file>`   | Compare schema with current instance |
-| `schema apply <file>`  | Apply schema from file               |
-| `collections snapshot` | Alias for schema snapshot            |
-
-### Dashboards & Panels (Analytics)
-
-| Command                                   | Description           |
-| ----------------------------------------- | --------------------- |
-| `dashboards list`                         | List dashboards       |
-| `dashboards get <id>`                     | Get dashboard details |
-| `dashboards create <name>`                | Create a dashboard    |
-| `dashboards update <id>`                  | Update a dashboard    |
-| `dashboards delete <id>`                  | Delete a dashboard    |
-| `panels list`                             | List panels           |
-| `panels get <id>`                         | Get panel details     |
-| `panels create <dashboard> <name> <type>` | Create a panel        |
-| `panels update <id>`                      | Update a panel        |
-| `panels delete <id>`                      | Delete a panel        |
-
-### Relations
-
-| Command                                 | Description          |
-| --------------------------------------- | -------------------- |
-| `relations list`                        | List all relations   |
-| `relations get <collection> <field>`    | Get relation details |
-| `relations create <collection> <field>` | Create a relation    |
-| `relations update <collection> <field>` | Update a relation    |
-| `relations delete <collection> <field>` | Delete a relation    |
-
-### Settings & Presets
-
-| Command                       | Description            |
-| ----------------------------- | ---------------------- |
-| `settings get`                | Get instance settings  |
-| `settings update`             | Update settings        |
-| `presets list`                | List presets/bookmarks |
-| `presets get <id>`            | Get preset             |
-| `presets create <collection>` | Create a preset        |
-| `presets update <id>`         | Update a preset        |
-| `presets delete <id>`         | Delete a preset        |
-
-### Bulk Operations
-
-| Command                           | Description                 |
-| --------------------------------- | --------------------------- |
-| `bulk export <collection>`        | Export data to file library |
-| `bulk import <collection> <file>` | Import data from file       |
-
-### Server & Activity
-
-| Command          | Description               |
-| ---------------- | ------------------------- |
-| `server ping`    | Check server connectivity |
-| `server info`    | Get server information    |
-| `activity list`  | List activity log         |
-| `revisions list` | List revisions            |
-
-## Global Flags
-
-These flags work with any command:
-
-| Flag                | Description                                               |
-| ------------------- | --------------------------------------------------------- |
-| `--profile <name>`  | Use a saved profile                                       |
-| `--url <url>`       | Directus instance URL                                     |
-| `--token <token>`   | Static access token                                       |
-| `--format <format>` | Output format: `table`, `json`, `yaml` (default: `table`) |
-| `--verbose`         | Enable verbose output                                     |
-| `-h, --help`        | Show help                                                 |
-
-## Usage Examples
 
 ### Filtering and Sorting
 
-```bash
-# Filter users by role
+```sh
+# Filter with conditions
 directus-cli users list --filter role=admin
 
-# Filter with multiple conditions (AND)
+# Multiple filters (AND logic)
 directus-cli items list articles --filter status=published --filter featured=true
 
-# Filter with JSON syntax
+# JSON filter syntax
 directus-cli items list articles --filter '{"date_created":{"_gt":"2024-01-01"}}'
 
-# Sort results
-directus-cli users list --sort -date_created  # Descending
-
-# Limit and offset (pagination)
-directus-cli items list articles --limit 10 --offset 20
-
-# Select specific fields
-directus-cli users list --fields id,email,first_name,last_name
+# Sort and paginate
+directus-cli users list --sort -date_created --limit 10 --offset 20
 ```
 
-### Working with JSON Data
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-```bash
-# Create item with inline JSON
-directus-cli items create articles '{"title":"Hello","body":"World"}'
+<!-- COMMANDS -->
 
-# Update specific fields
-directus-cli items update articles 123 '{"title":"Updated"}'
+## Commands
 
-# Use --file to read data from file
-directus-cli items create articles --file ./article.json
-```
+| Category                 | Commands                                                                                                                                               |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Auth & Profiles**      | `auth login`, `auth logout`, `auth refresh`, `auth status`, `profile add`, `profile list`                                                              |
+| **Users & Permissions**  | `users list`, `users create`, `users update`, `users delete`, `roles list`, `roles create`, `policies list`                                            |
+| **Collections & Fields** | `collections list`, `collections create`, `collections update`, `collections delete`, `fields list`, `fields create`, `fields update`, `fields delete` |
+| **Items**                | `items list`, `items get`, `items create`, `items update`, `items delete`                                                                              |
+| **Files & Folders**      | `files list`, `files download`, `files upload`, `folders list`, `folders create`, `folders update`, `folders delete`                                   |
+| **Flows & Operations**   | `flows list`, `flows create`, `flows trigger`, `operations list`, `operations create`, `operations update`                                             |
+| **Schema**               | `schema snapshot`, `schema diff`, `schema apply`                                                                                                       |
+| **Bulk Operations**      | `bulk export`, `bulk import`                                                                                                                           |
 
-### Schema Workflows
+_For a complete list, run `directus-cli --help` or see the [Documentation](https://github.com/Face-to-Face-IT/directus-cli#commands)_
 
-```bash
-# Export current schema
-directus-cli schema snapshot --output ./schema.yaml
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-# Review changes
-directus-cli schema diff ./schema.yaml
+<!-- ROADMAP -->
 
-# Apply schema (be careful!)
-directus-cli schema apply ./schema.yaml --yes
-```
+## Roadmap
 
-### Batch Operations
+- [x] Complete CRUD operations for all Directus resources
+- [x] Schema management (snapshot, diff, apply)
+- [x] Multi-profile support
+- [x] Bulk import/export
+- [ ] Interactive mode for complex operations
+- [ ] Webhook management commands
+- [ ] Content versioning support
+- [ ] GraphQL query support
 
-```bash
-# Export all published articles to JSON
-directus-cli bulk export articles --format json --filter '{"status":{"_eq":"published"}}'
+See the [open issues](https://github.com/Face-to-Face-IT/directus-cli/issues) for a full list of proposed features and known issues.
 
-# Import data from CSV
-directus-cli bulk import articles ./data.csv
-```
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-## Configuration
-
-### Profiles
-
-Profiles store connection settings for different Directus instances:
-
-```bash
-# Add a production profile
-directus-cli profile add production https://api.example.com \
-  --token $PROD_TOKEN \
-  --default
-
-# Add a development profile
-directus-cli profile add dev http://localhost:8055 \
-  --token $DEV_TOKEN
-
-# Switch profiles
-directus-cli users list --profile dev
-```
-
-### Environment Variables
-
-The CLI respects these environment variables:
-
-| Variable            | Description                  |
-| ------------------- | ---------------------------- |
-| `DIRECTUS_URL`      | Default URL if not specified |
-| `DIRECTUS_TOKEN`    | Default static token         |
-| `DIRECTUS_EMAIL`    | Default login email          |
-| `DIRECTUS_PASSWORD` | Default login password       |
-
-## Troubleshooting
-
-### Connection Issues
-
-```bash
-# Test connectivity
-directus-cli server ping --url https://your-directus.com
-
-# Check server info
-directus-cli server info --url https://your-directus.com
-```
-
-### Authentication Problems
-
-```bash
-# Check current status
-directus-cli auth status
-
-# Refresh token if expired
-directus-cli auth refresh
-
-# Re-login if needed
-directus-cli auth logout
-directus-cli auth login https://your-directus.com --email user@example.com
-```
-
-### Verbose Output
-
-Add `--verbose` to any command for detailed debugging:
-
-```bash
-directus-cli users list --profile production --verbose
-```
-
-## Development
-
-### Building from Source
-
-```bash
-# Clone the repository
-git clone https://github.com/Face-to-Face-IT/directus-cli.git
-cd directus-cli
-
-# Install dependencies
-pnpm install
-
-# Build
-pnpm build
-
-# Run locally
-./bin/dev.js users list --url http://localhost:8055
-```
-
-### Running Tests
-
-```bash
-pnpm test
-```
-
-## Requirements
-
-- **Node.js**: >= 20.0.0
-- **Directus**: >= 10.0.0 (most features), >= 11.0.0 (for policies)
-
-## License
-
-MIT © Face-to-Face IT
+<!-- CONTRIBUTING -->
 
 ## Contributing
 
-Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md) for details.
+Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
 
-## Support
+This project uses [Conventional Commits](https://www.conventionalcommits.org/) and [Semantic Release](https://semantic-release.gitbook.io/) for automated versioning. Please ensure your commits follow the convention:
 
-- [GitHub Issues](https://github.com/Face-to-Face-IT/directus-cli/issues)
-- [Directus Documentation](https://docs.directus.io/)
+```sh
+<type>(<scope>): <description>
+
+types: feat, fix, docs, style, refactor, perf, test, build, ci, chore
+```
+
+### How to Contribute
+
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'feat: add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+### Top contributors:
+
+<a href="https://github.com/Face-to-Face-IT/directus-cli/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=Face-to-Face-IT/directus-cli" alt="contrib.rocks image" />
+</a>
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+<!-- LICENSE -->
+
+## License
+
+Distributed under the MIT License. See `LICENSE` for more information.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+<!-- CONTACT -->
+
+## Contact
+
+Face-to-Face IT - [GitHub Organization](https://github.com/Face-to-Face-IT)
+
+Project Link: [https://github.com/Face-to-Face-IT/directus-cli](https://github.com/Face-to-Face-IT/directus-cli)
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+<!-- ACKNOWLEDGMENTS -->
+
+## Acknowledgments
+
+- [Directus](https://directus.io/) - The open-source data platform
+- [Directus SDK](https://docs.directus.io/reference/sdk.html) - Official JavaScript SDK
+- [oclif](https://oclif.io/) - Open CLI Framework
+- [Best-README-Template](https://github.com/othneildrew/Best-README-Template) - README template
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+<!-- MARKDOWN LINKS & IMAGES -->
+<!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
+
+[npm-version-shield]: https://img.shields.io/npm/v/@face-to-face-it/directus-cli?style=for-the-badge
+[npm-url]: https://www.npmjs.com/package/@face-to-face-it/directus-cli
+[license-shield]: https://img.shields.io/github/license/Face-to-Face-IT/directus-cli?style=for-the-badge
+[license-url]: https://github.com/Face-to-Face-IT/directus-cli/blob/main/LICENSE
+[contributors-shield]: https://img.shields.io/github/contributors/Face-to-Face-IT/directus-cli.svg?style=for-the-badge
+[contributors-url]: https://github.com/Face-to-Face-IT/directus-cli/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/Face-to-Face-IT/directus-cli.svg?style=for-the-badge
+[forks-url]: https://github.com/Face-to-Face-IT/directus-cli/network/members
+[stars-shield]: https://img.shields.io/github/stars/Face-to-Face-IT/directus-cli.svg?style=for-the-badge
+[stars-url]: https://github.com/Face-to-Face-IT/directus-cli/stargazers
+[issues-shield]: https://img.shields.io/github/issues/Face-to-Face-IT/directus-cli.svg?style=for-the-badge
+[issues-url]: https://github.com/Face-to-Face-IT/directus-cli/issues
+[TypeScript]: https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white
+[TypeScript-url]: https://www.typescriptlang.org/
+[oclif]: https://img.shields.io/badge/oclif-000000?style=for-the-badge&logo=oclif&logoColor=white
+[oclif-url]: https://oclif.io/
+[Directus]: https://img.shields.io/badge/Directus-263238?style=for-the-badge&logo=directus&logoColor=white
+[Directus-url]: https://directus.io/
+[Node.js]: https://img.shields.io/badge/Node.js-43853D?style=for-the-badge&logo=node.js&logoColor=white
+[Node-url]: https://nodejs.org/
