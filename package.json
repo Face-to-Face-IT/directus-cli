@@ -1,0 +1,84 @@
+{
+  "name": "@f2f-it/directus-cli",
+  "version": "0.1.0",
+  "description": "CLI client for the Directus API — manage items, schema, auth, and more from the command line",
+  "author": "Face-to-Face IT",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "directus-cli": "./bin/run.js"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "bin",
+    "dist",
+    "oclif.manifest.json"
+  ],
+  "oclif": {
+    "bin": "directus-cli",
+    "dirname": "directus-cli",
+    "commands": "./dist/commands",
+    "plugins": [
+      "@oclif/plugin-help",
+      "@oclif/plugin-autocomplete"
+    ],
+    "topicSeparator": " ",
+    "topics": {
+      "profile": {
+        "description": "Manage connection profiles for Directus instances"
+      },
+      "auth": {
+        "description": "Authenticate with a Directus instance"
+      },
+      "items": {
+        "description": "CRUD operations on collection items"
+      },
+      "schema": {
+        "description": "Snapshot, diff, and apply schema changes"
+      },
+      "server": {
+        "description": "Server health and info"
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "clean": "rm -rf dist",
+    "lint": "eslint src/",
+    "format": "prettier --check .",
+    "format:fix": "prettier --write .",
+    "prepack": "pnpm build && oclif manifest && oclif readme",
+    "postpack": "rm -f oclif.manifest.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "dev": "./bin/dev.js"
+  },
+  "dependencies": {
+    "@directus/sdk": "^21.2.0",
+    "@oclif/core": "^4.2.9",
+    "@oclif/plugin-autocomplete": "^3.2.16",
+    "@oclif/plugin-help": "^6.2.26",
+    "bottleneck": "^2.19.5",
+    "cli-table3": "^0.6.5",
+    "yaml": "^2.7.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.4",
+    "@oclif/test": "^4.1.8",
+    "@types/node": "^22.14.1",
+    "eslint": "^9.25.0",
+    "eslint-config-oclif": "^6.0.130",
+    "globals": "^17.5.0",
+    "oclif": "^4.17.0",
+    "prettier": "^3.5.3",
+    "tsx": "^4.21.0",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.58.2",
+    "vitest": "^3.1.1"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@10.8.1"
+}
