@@ -29,6 +29,8 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+        env:
+          HUSKY: 0
 
       - name: Build
         run: pnpm build
@@ -50,7 +52,7 @@ jobs:
           node-version: 22
 
       - name: Install CLI from npm
-        run: npm install -g @f2f-it/directus-cli
+        run: npm install -g @face-to-face-it/directus-cli
 
       - name: Verify installation
         run: directus-cli --version
