@@ -303,7 +303,7 @@ Project Link: [https://github.com/Face-to-Face-IT/directus-cli](https://github.c
 
 [npm-version-shield]: https://img.shields.io/npm/v/@face-to-face-it/directus-cli?style=for-the-badge
 [npm-url]: https://www.npmjs.com/package/@face-to-face-it/directus-cli
-[license-shield]: https://img.shields.io/github/license/Face-to-Face-IT/directus-cli?style=for-the-badge
+[license-shield]: https://img.shields.io/npm/l/@face-to-face-it/directus-cli?style=for-the-badge
 [license-url]: https://github.com/Face-to-Face-IT/directus-cli/blob/main/LICENSE
 [contributors-shield]: https://img.shields.io/github/contributors/Face-to-Face-IT/directus-cli.svg?style=for-the-badge
 [contributors-url]: https://github.com/Face-to-Face-IT/directus-cli/graphs/contributors
