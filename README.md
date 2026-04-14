@@ -30,7 +30,7 @@
 <br />
 <div align="center">
   <a href="https://github.com/Face-to-Face-IT/directus-cli">
-    <img src="https://raw.githubusercontent.com/directus/directus/main/app/public/logo.svg" alt="Logo" width="80" height="80">
+    <img src="images/logo.png" alt="Logo" width="200">
   </a>
 
   <h3 align="center">Directus CLI</h3>
