@@ -1,6 +1,6 @@
-import {Command, Flags} from '@oclif/core';
+import { Command, Flags } from '@oclif/core';
 
-import {logoutAndClearTokens} from '../../lib/auth.js';
+import { logoutAndClearTokens } from '../../lib/auth.js';
 
 /**
  * Logout from a Directus instance.
@@ -18,10 +18,13 @@ export default class AuthLogout extends Command {
   static override summary = 'Logout from Directus';
 
   public async run(): Promise<void> {
-    const {flags} = await this.parse(AuthLogout);
+    const { flags } = await this.parse(AuthLogout);
 
     await logoutAndClearTokens(flags.profile);
 
     this.log(`Successfully logged out from profile "${flags.profile}".`);
+
+    // Force exit: the Directus SDK keeps handles open that prevent clean exit.
+    process.exit(0);
   }
 }

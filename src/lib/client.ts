@@ -1,9 +1,7 @@
-import {
-  authentication, type AuthenticationClient, createDirectus, rest, type RestClient,
-} from '@directus/sdk';
+import { authentication, type AuthenticationClient, createDirectus, rest, type RestClient } from '@directus/sdk';
 import Bottleneck from 'bottleneck';
 
-import {DirectusCliError, type SdkRestCommand} from '../types/index.js';
+import { DirectusCliError, type SdkRestCommand } from '../types/index.js';
 
 // Global rate limiter: 10 concurrent, 50 req/s reservoir
 const limiter = new Bottleneck({
@@ -43,8 +41,8 @@ export class DirectusClient {
     this.verbose = options.verbose ?? false;
 
     const builder = createDirectus<unknown>(options.url)
-    .with(rest())
-    .with(authentication('json', {credentials: 'omit'}));
+      .with(rest())
+      .with(authentication('json', { credentials: 'omit' }));
 
     // Cast through unknown to handle type mismatch between builder and expected type
     this.client = builder as unknown as AuthenticationClient<unknown> & RestClient<unknown>;
@@ -55,6 +53,14 @@ export class DirectusClient {
     } else if (options.accessToken) {
       this.client.setToken(options.accessToken);
     }
+  }
+
+  /**
+   * Disconnect and clean up resources (Bottleneck limiter).
+   * Call this when done with the client to allow the process to exit cleanly.
+   */
+  async destroy(): Promise<void> {
+    await limiter.disconnect();
   }
 
   /**
@@ -77,9 +83,9 @@ export class DirectusClient {
   async login(
     email: string,
     password: string,
-  ): Promise<{accessToken: string; expires?: number; refreshToken?: string}> {
+  ): Promise<{ accessToken: string; expires?: number; refreshToken?: string }> {
     try {
-      const result = await this.client.login({email, password});
+      const result = await this.client.login({ email, password });
       if (!result.access_token) {
         throw new DirectusCliError('Login failed: no access token received', 401);
       }
@@ -109,7 +115,7 @@ export class DirectusClient {
   /**
    * Refresh the access token using the stored refresh token.
    */
-  async refreshAccessToken(): Promise<undefined | {accessToken: string; expires?: number; refreshToken?: string}> {
+  async refreshAccessToken(): Promise<undefined | { accessToken: string; expires?: number; refreshToken?: string }> {
     if (!this.refreshToken) {
       return undefined;
     }
@@ -187,7 +193,7 @@ export class DirectusClient {
  * Sleep for a given number of milliseconds.
  */
 function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     setTimeout(resolve, ms);
   });
 }
