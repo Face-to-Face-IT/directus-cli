@@ -23,5 +23,9 @@ export default class AuthLogout extends Command {
     await logoutAndClearTokens(flags.profile);
 
     this.log(`Successfully logged out from profile "${flags.profile}".`);
+
+    // Force exit: the Directus SDK keeps handles open that prevent clean exit.
+    // eslint-disable-next-line unicorn/no-process-exit
+    process.exit(0);
   }
 }

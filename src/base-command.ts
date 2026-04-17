@@ -70,6 +70,18 @@ export abstract class BaseCommand<T extends typeof Command> extends Command {
   }
 
   /**
+   * Clean up resources after command execution.
+   * Disconnects the Bottleneck limiter so the process can exit cleanly.
+   */
+  protected override async finally(_: Error | undefined): Promise<void> {
+    if (this.client) {
+      await this.client.destroy();
+    }
+
+    await super.finally(_);
+  }
+
+  /**
    * Initialize the command: resolve connection and create client.
    */
   protected override async init(): Promise<void> {

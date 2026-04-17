@@ -58,6 +58,14 @@ export class DirectusClient {
   }
 
   /**
+   * Disconnect and clean up resources (Bottleneck limiter).
+   * Call this when done with the client to allow the process to exit cleanly.
+   */
+  async destroy(): Promise<void> {
+    await limiter.disconnect();
+  }
+
+  /**
    * Get the underlying SDK client (for advanced use cases).
    */
   getSdkClient(): AuthenticationClient<unknown> & RestClient<unknown> {

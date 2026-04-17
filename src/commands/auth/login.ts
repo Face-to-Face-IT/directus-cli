@@ -39,5 +39,10 @@ export default class AuthLogin extends Command {
     await loginAndStoreTokens(flags.profile, flags.email, flags.password, flags.url);
 
     this.log(`Successfully logged in to profile "${flags.profile}".`);
+
+    // Force exit: the Directus SDK authentication module and Bottleneck
+    // rate limiter keep handles open that prevent Node from exiting cleanly.
+    // eslint-disable-next-line unicorn/no-process-exit
+    process.exit(0);
   }
 }
