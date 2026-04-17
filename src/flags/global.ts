@@ -1,6 +1,6 @@
-import { Flags } from '@oclif/core';
+import {Flags} from '@oclif/core';
 
-import type { OutputFormat } from '../lib/output.js';
+import type {OutputFormat} from '../lib/output.js';
 
 /**
  * Global flags available on all commands.

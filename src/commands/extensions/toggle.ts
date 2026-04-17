@@ -1,9 +1,9 @@
-import { updateExtension } from '@directus/sdk';
-import { Args, Flags } from '@oclif/core';
+import {updateExtension} from '@directus/sdk';
+import {Args, Flags} from '@oclif/core';
 
-import type { SdkRestCommand } from '../../types/index.js';
+import type {SdkRestCommand} from '../../types/index.js';
 
-import { BaseCommand } from '../../base-command.js';
+import {BaseCommand} from '../../base-command.js';
 
 /**
  * Enable or disable an extension.
@@ -39,7 +39,7 @@ export default class ExtensionsToggle extends BaseCommand<typeof ExtensionsToggl
   static override summary = 'Enable or disable an extension';
 
   public async run(): Promise<void> {
-    const { args, flags } = await this.parse(ExtensionsToggle);
+    const {args, flags} = await this.parse(ExtensionsToggle);
 
     if (!flags.enable && !flags.disable) {
       this.error('You must specify either --enable or --disable');
@@ -49,7 +49,7 @@ export default class ExtensionsToggle extends BaseCommand<typeof ExtensionsToggl
     const bundle = flags.bundle ?? null;
 
     const sdkCommand = updateExtension(bundle, args.name, {
-      meta: { enabled },
+      meta: {enabled},
     }) as unknown as SdkRestCommand<unknown>;
 
     const result = await this.client.request(sdkCommand);

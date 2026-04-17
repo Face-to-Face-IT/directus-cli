@@ -1,10 +1,12 @@
-import { Command, type Interfaces } from '@oclif/core';
+import {Command, type Interfaces} from '@oclif/core';
 
-import { globalFlags } from './flags/global.js';
-import { isTokenExpired, refreshAndStoreTokens, resolveConnection, type ResolvedConnection } from './lib/auth.js';
-import { createClient, type DirectusClient } from './lib/client.js';
-import { formatOutput, type OutputFormat } from './lib/output.js';
-import { type CommandArgs, DirectusCliError } from './types/index.js';
+import {globalFlags} from './flags/global.js';
+import {
+  isTokenExpired, refreshAndStoreTokens, resolveConnection, type ResolvedConnection,
+} from './lib/auth.js';
+import {createClient, type DirectusClient} from './lib/client.js';
+import {formatOutput, type OutputFormat} from './lib/output.js';
+import {type CommandArgs, DirectusCliError} from './types/index.js';
 
 /**
  * Base command class for all Directus CLI commands.
@@ -27,7 +29,7 @@ export abstract class BaseCommand<T extends typeof Command> extends Command {
    */
   protected get args(): CommandArgs {
     // Access the protected parsedArgs property through unknown cast
-    const cmd = this as unknown as { parsedArgs: unknown };
+    const cmd = this as unknown as {parsedArgs: unknown};
     return cmd.parsedArgs as CommandArgs;
   }
 
@@ -36,14 +38,14 @@ export abstract class BaseCommand<T extends typeof Command> extends Command {
    */
   protected get flags(): Interfaces.InferredFlags<T['flags'] & typeof globalFlags> {
     // Access the protected parsedFlags property through unknown cast
-    const cmd = this as unknown as { parsedFlags: unknown };
+    const cmd = this as unknown as {parsedFlags: unknown};
     return cmd.parsedFlags as Interfaces.InferredFlags<T['flags'] & typeof globalFlags>;
   }
 
   /**
    * Handle errors in a consistent way.
    */
-  protected override async catch(error: Error & { exitCode?: number } & { statusCode?: number }): Promise<void> {
+  protected override async catch(error: Error & {exitCode?: number} & {statusCode?: number}): Promise<void> {
     const directusError = DirectusCliError.from(error);
 
     const parts: string[] = [];
@@ -55,7 +57,7 @@ export abstract class BaseCommand<T extends typeof Command> extends Command {
     parts.push(directusError.message);
 
     // Access verbose flag carefully - might not be available if init failed
-    const flags = this.flags as unknown as undefined | { verbose?: boolean };
+    const flags = this.flags as unknown as undefined | {verbose?: boolean};
     if (flags?.verbose && directusError.errors) {
       for (const err of directusError.errors) {
         if (err.extensions) {
@@ -64,7 +66,7 @@ export abstract class BaseCommand<T extends typeof Command> extends Command {
       }
     }
 
-    this.error(parts.join(' '), { exit: directusError.statusCode ?? 1 });
+    this.error(parts.join(' '), {exit: directusError.statusCode ?? 1});
   }
 
   /**
@@ -89,8 +91,8 @@ export abstract class BaseCommand<T extends typeof Command> extends Command {
     const parsed = await this.parse(this.constructor as typeof Command);
 
     // Store parsed flags and args so the getters work
-    (this as unknown as { parsedFlags: unknown }).parsedFlags = parsed.flags;
-    (this as unknown as { parsedArgs: unknown }).parsedArgs = parsed.args;
+    (this as unknown as {parsedFlags: unknown}).parsedFlags = parsed.flags;
+    (this as unknown as {parsedArgs: unknown}).parsedArgs = parsed.args;
 
     // Resolve connection from flags/env/profile
     this.connection = resolveConnection({
@@ -126,7 +128,7 @@ export abstract class BaseCommand<T extends typeof Command> extends Command {
    * Output formatted data based on the --format flag.
    * Respects --quiet to suppress metadata and non-data output.
    */
-  protected outputFormatted<TData>(data: TData, meta?: { filterCount?: number; totalCount?: number }): void {
+  protected outputFormatted<TData>(data: TData, meta?: {filterCount?: number; totalCount?: number}): void {
     const format = this.flags.format as OutputFormat;
     const quiet = this.flags.quiet as boolean | undefined;
     const output = formatOutput(data, format, meta, quiet);

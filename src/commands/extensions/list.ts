@@ -1,9 +1,9 @@
-import { readExtensions } from '@directus/sdk';
-import { Flags } from '@oclif/core';
+import {readExtensions} from '@directus/sdk';
+import {Flags} from '@oclif/core';
 
-import type { SdkRestCommand } from '../../types/index.js';
+import type {SdkRestCommand} from '../../types/index.js';
 
-import { BaseCommand } from '../../base-command.js';
+import {BaseCommand} from '../../base-command.js';
 
 /**
  * List all installed extensions.
@@ -31,20 +31,20 @@ export default class ExtensionsList extends BaseCommand<typeof ExtensionsList> {
   static override summary = 'List extensions';
 
   public async run(): Promise<void> {
-    const { flags } = await this.parse(ExtensionsList);
+    const {flags} = await this.parse(ExtensionsList);
 
     const sdkCommand = readExtensions() as unknown as SdkRestCommand<unknown[]>;
     const result = await this.client.request(sdkCommand);
 
-    let data = Array.isArray(result) ? result : ((result as { data?: unknown[] }).data ?? []);
+    let data = Array.isArray(result) ? result : ((result as {data?: unknown[]}).data ?? []);
 
     // Flatten extensions into a more useful shape for display
     data = data.map((ext: unknown) => {
       const e = ext as {
         bundle?: null | string;
-        meta?: { enabled?: boolean };
+        meta?: {enabled?: boolean};
         name?: string;
-        schema?: { local?: boolean; type?: string; version?: string } | null;
+        schema?: null | {local?: boolean; type?: string; version?: string};
       };
       return {
         bundle: e.bundle ?? null,
@@ -59,11 +59,11 @@ export default class ExtensionsList extends BaseCommand<typeof ExtensionsList> {
     // Apply filters
     if (flags.type) {
       const filterType = flags.type.toLowerCase();
-      data = data.filter((e: unknown) => (e as { type: string }).type === filterType);
+      data = data.filter((e: unknown) => (e as {type: string}).type === filterType);
     }
 
     if (flags.enabled) {
-      data = data.filter((e: unknown) => (e as { enabled: boolean }).enabled);
+      data = data.filter((e: unknown) => (e as {enabled: boolean}).enabled);
     }
 
     this.outputFormatted(data);

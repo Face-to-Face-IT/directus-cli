@@ -1,6 +1,6 @@
-import { Command, Flags } from '@oclif/core';
+import {Command, Flags} from '@oclif/core';
 
-import { loginAndStoreTokens } from '../../lib/auth.js';
+import {loginAndStoreTokens} from '../../lib/auth.js';
 
 /**
  * Login to a Directus instance.
@@ -34,7 +34,7 @@ export default class AuthLogin extends Command {
   static override summary = 'Login to Directus';
 
   public async run(): Promise<void> {
-    const { flags } = await this.parse(AuthLogin);
+    const {flags} = await this.parse(AuthLogin);
 
     await loginAndStoreTokens(flags.profile, flags.email, flags.password, flags.url);
 
@@ -42,6 +42,7 @@ export default class AuthLogin extends Command {
 
     // Force exit: the Directus SDK authentication module and Bottleneck
     // rate limiter keep handles open that prevent Node from exiting cleanly.
+    // eslint-disable-next-line unicorn/no-process-exit
     process.exit(0);
   }
 }

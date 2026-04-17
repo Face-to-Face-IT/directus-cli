@@ -1,9 +1,9 @@
-import { readFieldsByCollection, readFields } from '@directus/sdk';
-import { Flags } from '@oclif/core';
+import {readFields, readFieldsByCollection} from '@directus/sdk';
+import {Flags} from '@oclif/core';
 
-import type { SdkRestCommand } from '../../types/index.js';
+import type {SdkRestCommand} from '../../types/index.js';
 
-import { BaseCommand } from '../../base-command.js';
+import {BaseCommand} from '../../base-command.js';
 
 /**
  * List fields, optionally filtered by collection.
@@ -26,7 +26,7 @@ export default class FieldsList extends BaseCommand<typeof FieldsList> {
   static override summary = 'List fields';
 
   public async run(): Promise<void> {
-    const { flags } = await this.parse(FieldsList);
+    const {flags} = await this.parse(FieldsList);
 
     let result: unknown;
     if (flags.collection) {
@@ -39,7 +39,7 @@ export default class FieldsList extends BaseCommand<typeof FieldsList> {
       result = await this.client.request(sdkCommand);
     }
 
-    const data = Array.isArray(result) ? result : ((result as { data?: unknown[] }).data ?? []);
+    const data = Array.isArray(result) ? result : ((result as {data?: unknown[]}).data ?? []);
     this.outputFormatted(data);
   }
 }
