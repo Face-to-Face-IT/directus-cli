@@ -24,9 +24,6 @@ export default class AuthRefresh extends Command {
 
     if (success) {
       this.log(`Successfully refreshed token for profile "${flags.profile}".`);
-      // Force exit: the Directus SDK keeps handles open that prevent clean exit.
-      // eslint-disable-next-line unicorn/no-process-exit
-      process.exit(0);
     } else {
       this.error(`Failed to refresh token for profile "${flags.profile}". Try logging in again.`);
     }
