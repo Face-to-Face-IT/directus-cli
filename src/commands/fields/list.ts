@@ -14,7 +14,6 @@ export default class FieldsList extends BaseCommand<typeof FieldsList> {
   static override examples = [
     '<%= config.bin %> <%= command.id %>',
     '<%= config.bin %> <%= command.id %> --collection cases',
-    '<%= config.bin %> <%= command.id %> --collection cases --fields field,collection,type',
   ];
   static override flags = {
     ...BaseCommand.baseFlags,
