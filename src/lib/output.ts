@@ -15,42 +15,45 @@ export function formatError(error: Error): string {
 
 /**
  * Format data for output based on the specified format.
+ * When quiet is true, suppresses metadata (counts, footers) and outputs only the data payload.
  */
 export function formatOutput(
   data: unknown,
   format: OutputFormat,
-  meta?: {filterCount?: number; totalCount?: number},
+  meta?: { filterCount?: number; totalCount?: number },
+  quiet?: boolean,
 ): string {
+  const effectiveMeta = quiet ? undefined : meta;
   switch (format) {
-  case 'json': {
-    return formatJson(data, meta);
-  }
+    case 'json': {
+      return quiet ? JSON.stringify(data, null, 2) : formatJson(data, effectiveMeta);
+    }
 
-  case 'table': {
-    return formatTable(data, meta);
-  }
+    case 'table': {
+      return formatTable(data, effectiveMeta);
+    }
 
-  case 'yaml': {
-    return formatYaml(data, meta);
-  }
+    case 'yaml': {
+      return quiet ? YAML.stringify(data) : formatYaml(data, effectiveMeta);
+    }
 
-  default: {
-    return formatJson(data, meta);
-  }
+    default: {
+      return quiet ? JSON.stringify(data, null, 2) : formatJson(data, effectiveMeta);
+    }
   }
 }
 
 /**
  * Format as JSON with optional metadata.
  */
-function formatJson(data: unknown, meta?: {filterCount?: number; totalCount?: number}): string {
-  const output: Record<string, unknown> = {data};
+function formatJson(data: unknown, meta?: { filterCount?: number; totalCount?: number }): string {
+  const output: Record<string, unknown> = { data };
   if (meta?.totalCount !== undefined) {
     output.meta = {
       // eslint-disable-next-line camelcase
       total_count: meta.totalCount,
       // eslint-disable-next-line camelcase
-      ...(meta.filterCount !== undefined && {filter_count: meta.filterCount}),
+      ...(meta.filterCount !== undefined && { filter_count: meta.filterCount }),
     };
   }
 
@@ -60,7 +63,7 @@ function formatJson(data: unknown, meta?: {filterCount?: number; totalCount?: nu
 /**
  * Format as a table. Only works for array data.
  */
-function formatTable(data: unknown, meta?: {filterCount?: number; totalCount?: number}): string {
+function formatTable(data: unknown, meta?: { filterCount?: number; totalCount?: number }): string {
   if (!Array.isArray(data)) {
     // Fallback to JSON for non-array data
     return formatJson(data, meta);
@@ -80,7 +83,7 @@ function formatTable(data: unknown, meta?: {filterCount?: number; totalCount?: n
 
   // Build table
   const table = new Table({
-    head: columns.map(col => truncate(col, 20)),
+    head: columns.map((col) => truncate(col, 20)),
     wordWrap: true,
     wrapOnWordBoundary: false,
   });
@@ -88,7 +91,7 @@ function formatTable(data: unknown, meta?: {filterCount?: number; totalCount?: n
   for (const item of data) {
     if (typeof item !== 'object' || item === null) continue;
 
-    const row = columns.map(col => {
+    const row = columns.map((col) => {
       const value = (item as Record<string, unknown>)[col];
       return formatCellValue(value, 30);
     });
@@ -111,14 +114,14 @@ function formatTable(data: unknown, meta?: {filterCount?: number; totalCount?: n
 /**
  * Format as YAML with optional metadata.
  */
-function formatYaml(data: unknown, meta?: {filterCount?: number; totalCount?: number}): string {
-  const output: Record<string, unknown> = {data};
+function formatYaml(data: unknown, meta?: { filterCount?: number; totalCount?: number }): string {
+  const output: Record<string, unknown> = { data };
   if (meta?.totalCount !== undefined) {
     output.meta = {
       // eslint-disable-next-line camelcase
       total_count: meta.totalCount,
       // eslint-disable-next-line camelcase
-      ...(meta.filterCount !== undefined && {filter_count: meta.filterCount}),
+      ...(meta.filterCount !== undefined && { filter_count: meta.filterCount }),
     };
   }
 

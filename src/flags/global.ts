@@ -1,6 +1,6 @@
-import {Flags} from '@oclif/core';
+import { Flags } from '@oclif/core';
 
-import type {OutputFormat} from '../lib/output.js';
+import type { OutputFormat } from '../lib/output.js';
 
 /**
  * Global flags available on all commands.
@@ -17,6 +17,11 @@ export const globalFlags = {
     description: 'Profile name from config',
     env: 'DIRECTUS_PROFILE',
     helpValue: '<name>',
+  }),
+  quiet: Flags.boolean({
+    char: 'q',
+    default: false,
+    description: 'Suppress non-data output (headers, footers, status messages)',
   }),
   token: Flags.string({
     char: 't',

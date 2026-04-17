@@ -37,6 +37,9 @@
       "schema": {
         "description": "Snapshot, diff, and apply schema changes"
       },
+      "extensions": {
+        "description": "List and manage installed extensions"
+      },
       "server": {
         "description": "Server health and info"
       }
