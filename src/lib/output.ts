@@ -30,6 +30,16 @@ export function formatOutput(
   }
 
   case 'table': {
+    if (quiet) {
+      if (!Array.isArray(data)) {
+        return JSON.stringify(data, null, 2);
+      }
+
+      if (data.length === 0) {
+        return '';
+      }
+    }
+
     return formatTable(data, effectiveMeta);
   }
 

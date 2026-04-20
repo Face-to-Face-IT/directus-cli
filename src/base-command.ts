@@ -114,7 +114,8 @@ export abstract class BaseCommand<T extends typeof Command> extends Command {
 
   /**
    * Output formatted data based on the --format flag.
-   * Respects --quiet to suppress metadata and non-data output.
+   * Respects --quiet to suppress output metadata (for example, counts/footers)
+   * and return payload-only output for structured formats such as json/yaml.
    */
   protected outputFormatted<TData>(data: TData, meta?: {filterCount?: number; totalCount?: number}): void {
     const format = this.flags.format as OutputFormat;

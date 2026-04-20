@@ -21,7 +21,7 @@ export const globalFlags = {
   quiet: Flags.boolean({
     char: 'q',
     default: false,
-    description: 'Suppress non-data output (headers, footers, status messages)',
+    description: 'Suppress output metadata wrappers (counts, footers) and return data-only payload',
   }),
   token: Flags.string({
     char: 't',
