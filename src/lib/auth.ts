@@ -99,17 +99,22 @@ export async function loginAndStoreTokens(
   }
 
   const client = createClient({url: connectionUrl});
-  const tokens = await client.login(email, password);
+  try {
+    const tokens = await client.login(email, password);
 
-  if (!tokens.expires) {
-    throw new Error('Login response did not include expiration');
+    if (!tokens.expires) {
+      throw new Error('Login response did not include expiration');
+    }
+
+    const expiresMs = tokens.expires * 1000;
+    updateProfileTokens(profileName, {
+      accessToken: tokens.accessToken,
+      expiresAt: Date.now() + expiresMs,
+      refreshToken: tokens.refreshToken ?? '',
+    });
+  } finally {
+    await client.destroy();
   }
-
-  updateProfileTokens(profileName, {
-    accessToken: tokens.accessToken,
-    expiresAt: Date.now() + (tokens.expires * 1000),
-    refreshToken: tokens.refreshToken ?? '',
-  });
 }
 
 /**
@@ -125,14 +130,16 @@ export async function logoutAndClearTokens(profileName: string): Promise<void> {
 
   // Try to logout via API if we have tokens
   if (profile.accessToken) {
+    const client = createClient({
+      accessToken: profile.accessToken,
+      url: profile.url,
+    });
     try {
-      const client = createClient({
-        accessToken: profile.accessToken,
-        url: profile.url,
-      });
       await client.logout();
     } catch {
       // Ignore logout errors
+    } finally {
+      await client.destroy();
     }
   }
 
@@ -162,23 +169,28 @@ export async function refreshAndStoreTokens(profileName: string): Promise<boolea
       url: profile.url,
     });
 
-    const tokens = await client.refreshAccessToken();
+    try {
+      const tokens = await client.refreshAccessToken();
 
-    if (!tokens) {
-      return false;
+      if (!tokens) {
+        return false;
+      }
+
+      if (!tokens.expires) {
+        return false;
+      }
+
+      const expiresMs = tokens.expires * 1000;
+      updateProfileTokens(profileName, {
+        accessToken: tokens.accessToken,
+        expiresAt: Date.now() + expiresMs,
+        refreshToken: tokens.refreshToken ?? profile.refreshToken,
+      });
+
+      return true;
+    } finally {
+      await client.destroy();
     }
-
-    if (!tokens.expires) {
-      return false;
-    }
-
-    updateProfileTokens(profileName, {
-      accessToken: tokens.accessToken,
-      expiresAt: Date.now() + (tokens.expires * 1000),
-      refreshToken: tokens.refreshToken ?? profile.refreshToken,
-    });
-
-    return true;
   } catch {
     return false;
   }
