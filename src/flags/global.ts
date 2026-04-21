@@ -18,6 +18,11 @@ export const globalFlags = {
     env: 'DIRECTUS_PROFILE',
     helpValue: '<name>',
   }),
+  quiet: Flags.boolean({
+    char: 'q',
+    default: false,
+    description: 'Suppress output metadata wrappers (counts, footers) and return data-only payload',
+  }),
   token: Flags.string({
     char: 't',
     description: 'Static access token (overrides profile)',

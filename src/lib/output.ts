@@ -15,27 +15,40 @@ export function formatError(error: Error): string {
 
 /**
  * Format data for output based on the specified format.
+ * When quiet is true, suppresses metadata (counts, footers) and outputs only the data payload.
  */
 export function formatOutput(
   data: unknown,
   format: OutputFormat,
   meta?: {filterCount?: number; totalCount?: number},
+  quiet?: boolean,
 ): string {
+  const effectiveMeta = quiet ? undefined : meta;
   switch (format) {
   case 'json': {
-    return formatJson(data, meta);
+    return quiet ? JSON.stringify(data, null, 2) : formatJson(data, effectiveMeta);
   }
 
   case 'table': {
-    return formatTable(data, meta);
+    if (quiet) {
+      if (!Array.isArray(data)) {
+        return JSON.stringify(data, null, 2);
+      }
+
+      if (data.length === 0) {
+        return '';
+      }
+    }
+
+    return formatTable(data, effectiveMeta);
   }
 
   case 'yaml': {
-    return formatYaml(data, meta);
+    return quiet ? YAML.stringify(data) : formatYaml(data, effectiveMeta);
   }
 
   default: {
-    return formatJson(data, meta);
+    return quiet ? JSON.stringify(data, null, 2) : formatJson(data, effectiveMeta);
   }
   }
 }
