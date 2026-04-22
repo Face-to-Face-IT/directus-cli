@@ -217,6 +217,7 @@ directus-cli users list --sort -date_created --limit 10 --offset 20
 | **Flows & Operations**   | `flows list`, `flows create`, `flows trigger`, `operations list`, `operations create`, `operations update`                                             |
 | **Schema**               | `schema snapshot`, `schema diff`, `schema apply`                                                                                                       |
 | **Bulk Operations**      | `bulk export`, `bulk import`                                                                                                                           |
+| **Extensions**           | `extensions list`, `extensions toggle`, `extensions search`, `extensions info`, `extensions install`, `extensions uninstall`, `extensions reinstall`, `extensions upgrade` |
 
 _For a complete list, run `directus-cli --help` or see the [Documentation](https://github.com/Face-to-Face-IT/directus-cli#commands)_
 
