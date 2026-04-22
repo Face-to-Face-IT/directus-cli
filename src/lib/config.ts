@@ -1,7 +1,7 @@
 import {
-  existsSync, mkdirSync, readFileSync, writeFileSync,
+  chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync,
 } from 'node:fs';
-import {homedir} from 'node:os';
+import {homedir, platform} from 'node:os';
 import {dirname, join} from 'node:path';
 
 /**
@@ -69,17 +69,27 @@ export function loadConfig(): Config {
 }
 
 /**
- * Save the config to disk.
+ * Save the config to disk with owner-only permissions (0600) on POSIX systems.
+ * The config file may contain access and refresh tokens.
  */
 export function saveConfig(config: Config): void {
   const configPath = getConfigPath();
   const dir = dirname(configPath);
 
   if (!existsSync(dir)) {
-    mkdirSync(dir, {recursive: true});
+    mkdirSync(dir, {mode: 0o700, recursive: true});
   }
 
   writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n', 'utf8');
+
+  // Tighten file permissions on POSIX. No-op on Windows.
+  if (platform() !== 'win32') {
+    try {
+      chmodSync(configPath, 0o600);
+    } catch {
+      // If chmod fails, proceed silently — the file is still written.
+    }
+  }
 }
 
 /**
@@ -138,10 +148,12 @@ export function setDefaultProfile(name: string): void {
 
 /**
  * Update stored auth tokens for a profile.
+ * `refreshToken` is optional; pass `undefined` to clear the stored refresh token,
+ * or omit it to leave the existing refresh token in place.
  */
 export function updateProfileTokens(
   name: string,
-  tokens: {accessToken: string; expiresAt: number; refreshToken: string},
+  tokens: {accessToken: string; expiresAt: number; refreshToken?: string},
 ): void {
   const config = loadConfig();
   const profile = config.profiles[name];
@@ -152,7 +164,14 @@ export function updateProfileTokens(
 
   profile.accessToken = tokens.accessToken;
   profile.expiresAt = tokens.expiresAt;
-  profile.refreshToken = tokens.refreshToken;
+  if ('refreshToken' in tokens) {
+    if (tokens.refreshToken) {
+      profile.refreshToken = tokens.refreshToken;
+    } else {
+      delete profile.refreshToken;
+    }
+  }
+
   saveConfig(config);
 }
 

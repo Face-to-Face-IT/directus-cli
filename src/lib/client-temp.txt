@@ -1,2 +1,0 @@
-        // Retry on specific status codes and network errors
-        const shouldRetry = directusError.statusCode === 429 || directusError.statusCode === 503 || directusError.code === 'ECONNREFUSED' || directusError.code === 'ETIMEDOUT';

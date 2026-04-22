@@ -101,7 +101,8 @@ export abstract class BaseCommand<T extends typeof Command> extends Command {
       url: parsed.flags.url as string | undefined,
     });
 
-    // Check if token needs refresh
+    // Proactively refresh the access token if it is expired or within the
+    // refresh window (see PROACTIVE_REFRESH_WINDOW_MS in lib/auth.ts).
     if (isTokenExpired(this.connection) && this.connection.profileName) {
       const refreshed = await refreshAndStoreTokens(this.connection.profileName);
       if (refreshed) {
@@ -114,9 +115,25 @@ export abstract class BaseCommand<T extends typeof Command> extends Command {
       }
     }
 
-    // Create SDK client
+    const {profileName} = this.connection;
+
+    // Create SDK client with reactive refresh-on-401 (non-static tokens only).
     this.client = createClient({
       accessToken: this.connection.accessToken,
+      onRefresh: profileName && !this.connection.token
+        ? async () => {
+          const refreshed = await refreshAndStoreTokens(profileName);
+          if (!refreshed) return null;
+
+          // Re-resolve to pick up the freshly stored access token.
+          this.connection = resolveConnection({
+            profile: parsed.flags.profile as string | undefined,
+            token: parsed.flags.token as string | undefined,
+            url: parsed.flags.url as string | undefined,
+          });
+          return this.connection.accessToken ?? null;
+        }
+        : undefined,
       refreshToken: this.connection.refreshToken,
       token: this.connection.token,
       url: this.connection.url,

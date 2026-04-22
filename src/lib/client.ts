@@ -22,6 +22,14 @@ const RETRY_DELAY_MS = 1000;
  */
 export interface ClientOptions {
   accessToken?: string;
+  /**
+   * Optional callback invoked when a request fails with HTTP 401.
+   * Should attempt to refresh the access token and return the new token on
+   * success, or `null` if refresh is not possible (e.g. no refresh token or
+   * refresh token itself is rejected). When a token is returned, the original
+   * request is retried exactly once.
+   */
+  onRefresh?: () => Promise<null | string>;
   refreshToken?: string;
   token?: string;
   url: string;
@@ -33,6 +41,8 @@ export interface ClientOptions {
  */
 export class DirectusClient {
   private client: AuthenticationClient<unknown> & RestClient<unknown>;
+  private isStaticToken: boolean;
+  private onRefresh?: () => Promise<null | string>;
   private refreshToken?: string;
   private url: string;
   private verbose: boolean;
@@ -41,6 +51,8 @@ export class DirectusClient {
     this.refreshToken = options.refreshToken;
     this.url = options.url;
     this.verbose = options.verbose ?? false;
+    this.onRefresh = options.onRefresh;
+    this.isStaticToken = Boolean(options.token);
 
     const builder = createDirectus<unknown>(options.url)
     .with(rest())
@@ -141,9 +153,11 @@ export class DirectusClient {
 
   /**
    * Execute a request with rate limiting and retry logic.
+   * On HTTP 401, invokes the configured `onRefresh` callback (if any) and,
+   * on a successful refresh, retries the original request exactly once.
    */
   async request<TResult>(command: SdkRestCommand<TResult>): Promise<TResult> {
-    const executeRequest = async (attempt: number): Promise<TResult> => {
+    const executeRequest = async (attempt: number, refreshAttempted: boolean): Promise<TResult> => {
       if (this.verbose) {
         console.error('[request] Executing SDK command...');
       }
@@ -157,7 +171,30 @@ export class DirectusClient {
       } catch (error) {
         const directusError = DirectusCliError.from(error);
 
-        // Don't retry on client errors
+        // Reactive refresh-on-401: if we have a refresh callback, the token is
+        // not a static PAT, and we haven't already tried, refresh and retry once.
+        if (
+          directusError.statusCode === 401
+          && !refreshAttempted
+          && this.onRefresh
+          && !this.isStaticToken
+        ) {
+          if (this.verbose) {
+            console.error('[auth] 401 received; attempting token refresh...');
+          }
+
+          const newToken = await this.onRefresh();
+          if (newToken) {
+            this.client.setToken(newToken);
+            return executeRequest(attempt, true);
+          }
+
+          if (this.verbose) {
+            console.error('[auth] Refresh was not successful; surfacing 401.');
+          }
+        }
+
+        // Don't retry on other client errors
         if (directusError.statusCode === 400 || directusError.statusCode === 401) {
           throw directusError;
         }
@@ -171,14 +208,14 @@ export class DirectusClient {
           }
 
           await sleep(delay);
-          return executeRequest(attempt + 1);
+          return executeRequest(attempt + 1, refreshAttempted);
         }
 
         throw directusError;
       }
     };
 
-    return executeRequest(1);
+    return executeRequest(1, false);
   }
 
   /**
