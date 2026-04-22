@@ -4,6 +4,23 @@ import {
 } from './config.js';
 
 /**
+ * Number of seconds before actual expiry at which we consider the access token
+ * stale and proactively refresh. Protects long-running commands and agent
+ * workflows from a token that is valid at dispatch but expires mid-flight.
+ */
+export const PROACTIVE_REFRESH_WINDOW_MS = 60 * 1000;
+
+/**
+ * Reasons a refresh attempt can fail, exposed to callers for actionable errors.
+ */
+export type RefreshFailureReason = 'missingProfile' | 'missingRefreshToken' | 'networkError' | 'rejected' | 'unknown';
+
+/**
+ * Structured result of a refresh attempt.
+ */
+export type RefreshResult = {detail?: string; ok: false; reason: RefreshFailureReason} | {ok: true};
+
+/**
  * Resolve connection options from flags, environment variables, and profile config.
  * Priority: flags > env > profile config
  */
@@ -73,14 +90,14 @@ export function hasValidAuth(connection: ResolvedConnection): boolean {
 }
 
 /**
- * Check if the access token is expired.
+ * Check if the access token is expired or within the proactive refresh window.
  */
-export function isTokenExpired(connection: ResolvedConnection): boolean {
+export function isTokenExpired(connection: ResolvedConnection, windowMs = PROACTIVE_REFRESH_WINDOW_MS): boolean {
   if (!connection.accessToken || !connection.expiresAt) {
     return false;
   }
 
-  return Date.now() >= connection.expiresAt;
+  return Date.now() + windowMs >= connection.expiresAt;
 }
 
 /**
@@ -110,7 +127,7 @@ export async function loginAndStoreTokens(
     updateProfileTokens(profileName, {
       accessToken: tokens.accessToken,
       expiresAt: Date.now() + expiresMs,
-      refreshToken: tokens.refreshToken ?? '',
+      refreshToken: tokens.refreshToken,
     });
   } finally {
     await client.destroy();
@@ -138,9 +155,10 @@ export async function logoutAndClearTokens(profileName: string): Promise<void> {
       await client.logout();
     } catch {
       // Ignore logout errors
-    } finally {
-      await client.destroy();
     }
+    // Do not call client.destroy(): the Bottleneck limiter is module-scoped
+    // and shared across clients; disconnecting it here would break any
+    // concurrent in-flight requests.
   }
 
   // Clear tokens from profile
@@ -153,45 +171,85 @@ export async function logoutAndClearTokens(profileName: string): Promise<void> {
 
 /**
  * Refresh the access token for a profile and update stored tokens.
+ * Returns `true` on success, `false` on any failure (backwards compatible).
+ * For structured error information, prefer {@link refreshAndStoreTokensDetailed}.
  */
 export async function refreshAndStoreTokens(profileName: string): Promise<boolean> {
+  const result = await refreshAndStoreTokensDetailed(profileName);
+  return result.ok;
+}
+
+/**
+ * Refresh the access token for a profile and return a structured result
+ * describing why refresh failed (if it did).
+ */
+export async function refreshAndStoreTokensDetailed(profileName: string): Promise<RefreshResult> {
   const config = loadConfig();
   const profile = config.profiles[profileName];
 
-  if (!profile || !profile.refreshToken) {
-    return false;
+  if (!profile) {
+    return {ok: false, reason: 'missingProfile'};
   }
+
+  if (!profile.refreshToken) {
+    return {ok: false, reason: 'missingRefreshToken'};
+  }
+
+  const client = createClient({
+    accessToken: profile.accessToken,
+    refreshToken: profile.refreshToken,
+    url: profile.url,
+  });
 
   try {
-    const client = createClient({
-      accessToken: profile.accessToken,
-      refreshToken: profile.refreshToken,
-      url: profile.url,
+    const tokens = await client.refreshAccessToken();
+
+    if (!tokens || !tokens.expires) {
+      return {
+        detail: 'Refresh response did not include a new access token or expiry.',
+        ok: false,
+        reason: 'rejected',
+      };
+    }
+
+    const expiresMs = tokens.expires * 1000;
+    updateProfileTokens(profileName, {
+      accessToken: tokens.accessToken,
+      expiresAt: Date.now() + expiresMs,
+      refreshToken: tokens.refreshToken ?? profile.refreshToken,
     });
 
-    try {
-      const tokens = await client.refreshAccessToken();
-
-      if (!tokens) {
-        return false;
-      }
-
-      if (!tokens.expires) {
-        return false;
-      }
-
-      const expiresMs = tokens.expires * 1000;
-      updateProfileTokens(profileName, {
-        accessToken: tokens.accessToken,
-        expiresAt: Date.now() + expiresMs,
-        refreshToken: tokens.refreshToken ?? profile.refreshToken,
-      });
-
-      return true;
-    } finally {
-      await client.destroy();
-    }
-  } catch {
-    return false;
+    return {ok: true};
+  } catch (error) {
+    return classifyRefreshError(error);
   }
+
+  // Intentionally do NOT call client.destroy() here. The Bottleneck limiter in
+  // client.ts is module-scoped and shared across all DirectusClient instances.
+  // Destroying it would disconnect the limiter mid-flight when this helper is
+  // invoked from an outer client's `onRefresh` callback, breaking subsequent
+  // `limiter.schedule(...)` calls on the in-flight request. The limiter has no
+  // per-instance state to clean up, so leaking this client is safe.
+}
+
+/**
+ * Classify a refresh error into a structured {@link RefreshResult}.
+ */
+function classifyRefreshError(error: unknown): RefreshResult {
+  const err = error as {code?: string; message?: string; statusCode?: number};
+  const networkCodes = new Set(['EAI_AGAIN', 'ECONNREFUSED', 'ECONNRESET', 'ENOTFOUND', 'ETIMEDOUT']);
+
+  if (err.code && networkCodes.has(err.code)) {
+    return {detail: err.message ?? err.code, ok: false, reason: 'networkError'};
+  }
+
+  if (err.statusCode === 401 || err.statusCode === 403) {
+    return {
+      detail: err.message ?? 'Refresh token was rejected by the server (expired or revoked).',
+      ok: false,
+      reason: 'rejected',
+    };
+  }
+
+  return {detail: err.message, ok: false, reason: 'unknown'};
 }
