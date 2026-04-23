@@ -37,6 +37,10 @@ export interface RegistryExtensionVersion {
 
 /**
  * A row from `GET /extensions/` (installed extensions).
+ *
+ * The Directus API does not return a top-level `name` field for installed
+ * extensions — the extension name lives under `schema.name`. The top-level
+ * `name` is kept optional for forward compatibility but should not be relied on.
  */
 export interface InstalledExtension {
   bundle?: null | string;
@@ -48,7 +52,7 @@ export interface InstalledExtension {
     permissions?: null | unknown;
     source?: string;
   };
-  name: string;
+  name?: string;
   schema?: null | {
     local?: boolean;
     name?: string;
@@ -67,6 +71,14 @@ export interface RegistrySearchQuery {
   sandbox?: boolean;
   search?: string;
   type?: string;
+}
+
+/**
+ * Return the canonical name for an installed extension row.
+ * Prefers `schema.name` (authoritative) and falls back to top-level `name`.
+ */
+export function getInstalledExtensionName(e: InstalledExtension): string | undefined {
+  return e.schema?.name ?? e.name;
 }
 
 /**
@@ -186,6 +198,10 @@ export async function resolveRegistryExtension(
 
 /**
  * Resolve a user-provided identifier (name or PK) to an installed extension row.
+ *
+ * Matching order:
+ *   1. If identifier is a UUID, match by `meta.id` or `id` (row PK).
+ *   2. Match by extension name (`schema.name`, falling back to top-level `name`).
  */
 export async function resolveInstalledExtension(
   client: DirectusClient,
@@ -199,7 +215,7 @@ export async function resolveInstalledExtension(
     if (byPk) return byPk;
   }
 
-  const byName = installed.filter(e => e.name === identifier);
+  const byName = installed.filter(e => getInstalledExtensionName(e) === identifier);
   if (byName.length === 1) return byName[0]!;
   if (byName.length > 1) {
     throw new Error(`Multiple installed extensions named "${identifier}". Specify the directus_extensions row id.`);

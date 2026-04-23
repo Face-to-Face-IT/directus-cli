@@ -38,19 +38,21 @@ export default class ExtensionsList extends BaseCommand<typeof ExtensionsList> {
 
     let data = Array.isArray(result) ? result : ((result as {data?: unknown[]}).data ?? []);
 
-    // Flatten extensions into a more useful shape for display
+    // Flatten extensions into a more useful shape for display.
+    // Note: the Directus API returns the canonical extension name at
+    // `schema.name`, not top-level `name` (which is usually absent).
     data = data.map((ext: unknown) => {
       const e = ext as {
         bundle?: null | string;
         meta?: {enabled?: boolean};
         name?: string;
-        schema?: null | {local?: boolean; type?: string; version?: string};
+        schema?: null | {local?: boolean; name?: string; type?: string; version?: string};
       };
       return {
         bundle: e.bundle ?? null,
         enabled: e.meta?.enabled ?? false,
         local: e.schema?.local ?? false,
-        name: e.name ?? 'unknown',
+        name: e.schema?.name ?? e.name ?? 'unknown',
         type: e.schema?.type ?? 'unknown',
         version: e.schema?.version ?? '-',
       };

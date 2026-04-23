@@ -6,6 +6,7 @@ import type {DirectusClient} from '../../src/lib/client.js';
 
 import {
   describeRegistryExtension,
+  getInstalledExtensionName,
   installRegistryExtension,
   parseVersionedIdentifier,
   pickLatestVersion,
@@ -216,23 +217,37 @@ describe('extensions-registry', () => {
     });
   });
 
+  describe('getInstalledExtensionName', () => {
+    it('prefers schema.name', () => {
+      expect(getInstalledExtensionName({schema: {name: 'canonical'}, name: 'legacy'})).toBe('canonical');
+    });
+
+    it('falls back to top-level name', () => {
+      expect(getInstalledExtensionName({name: 'legacy'})).toBe('legacy');
+    });
+
+    it('returns undefined when neither is present', () => {
+      expect(getInstalledExtensionName({})).toBeUndefined();
+    });
+  });
+
   describe('resolveInstalledExtension', () => {
     it('matches by installed row pk when a UUID is given', async () => {
       const pk = '12345678-1234-1234-1234-123456789abc';
       mockRequest.mockResolvedValueOnce([
-        {meta: {id: pk, source: 'registry'}, name: 'foo'},
+        {meta: {id: pk, source: 'registry'}, schema: {name: 'foo'}},
       ]);
 
       const result = await resolveInstalledExtension(mockClient, pk);
 
-      expect(result.name).toBe('foo');
+      expect(result.schema?.name).toBe('foo');
     });
 
-    it('matches by name when a name is given', async () => {
+    it('matches by schema.name (the real API shape)', async () => {
       mockRequest.mockResolvedValueOnce({
         data: [
-          {meta: {id: 'pk-a', source: 'registry'}, name: 'bar'},
-          {meta: {id: 'pk-b', source: 'registry'}, name: 'foo'},
+          {meta: {id: 'pk-a', source: 'registry'}, schema: {name: 'bar'}},
+          {meta: {id: 'pk-b', source: 'registry'}, schema: {name: 'foo'}},
         ],
       });
 
@@ -241,10 +256,22 @@ describe('extensions-registry', () => {
       expect(result.meta?.id).toBe('pk-b');
     });
 
+    it('falls back to top-level name when schema.name is absent', async () => {
+      mockRequest.mockResolvedValueOnce({
+        data: [
+          {meta: {id: 'pk-a', source: 'registry'}, name: 'foo'},
+        ],
+      });
+
+      const result = await resolveInstalledExtension(mockClient, 'foo');
+
+      expect(result.meta?.id).toBe('pk-a');
+    });
+
     it('throws when the name appears multiple times', async () => {
       mockRequest.mockResolvedValueOnce([
-        {meta: {id: 'pk-a', source: 'registry'}, name: 'foo'},
-        {meta: {id: 'pk-b', source: 'registry'}, name: 'foo'},
+        {meta: {id: 'pk-a', source: 'registry'}, schema: {name: 'foo'}},
+        {meta: {id: 'pk-b', source: 'registry'}, schema: {name: 'foo'}},
       ]);
 
       await expect(resolveInstalledExtension(mockClient, 'foo')).rejects.toThrow(/Multiple installed extensions/);
