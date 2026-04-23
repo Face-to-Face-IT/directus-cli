@@ -148,4 +148,40 @@ describe('DirectusClient.refreshAccessToken', () => {
     const [url] = mockFetch.mock.calls[0]!;
     expect(url).toBe('https://example.test/directus/auth/refresh');
   });
+
+  it('uses the latest refresh token returned by a previous refresh', async () => {
+    mockFetch
+      .mockResolvedValueOnce({
+        json: async () => ({
+          data: {access_token: 'new-access-1', expires: 900_000, refresh_token: 'rotated-refresh'},
+        }),
+        ok: true,
+        status: 200,
+      })
+      .mockResolvedValueOnce({
+        json: async () => ({
+          data: {access_token: 'new-access-2', expires: 900_000, refresh_token: 'rotated-refresh-2'},
+        }),
+        ok: true,
+        status: 200,
+      });
+
+    const client = createClient({refreshToken: 'stored-refresh', url: 'https://example.test'});
+
+    await client.refreshAccessToken();
+    await client.refreshAccessToken();
+
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+    const [, firstInit] = mockFetch.mock.calls[0]!;
+    const [, secondInit] = mockFetch.mock.calls[1]!;
+
+    expect(JSON.parse(firstInit.body as string)).toEqual({
+      mode: 'json',
+      refresh_token: 'stored-refresh',
+    });
+    expect(JSON.parse(secondInit.body as string)).toEqual({
+      mode: 'json',
+      refresh_token: 'rotated-refresh',
+    });
+  });
 });

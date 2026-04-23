@@ -173,6 +173,14 @@ export class DirectusClient {
 
       if (result.access_token) {
         this.client.setToken(result.access_token);
+
+        // Persist the rotated refresh token so subsequent in-process refreshes
+        // use the latest value. The rotated token is also returned so callers
+        // (e.g. the config profile) can persist it to disk.
+        if (result.refresh_token) {
+          this.refreshToken = result.refresh_token;
+        }
+
         return {
           accessToken: result.access_token,
           expires: result.expires ?? undefined,
