@@ -71,6 +71,10 @@ export interface RegistrySearchQuery {
 
 /**
  * Build a RestCommand that searches the marketplace registry.
+ *
+ * Note: the Directus SDK invokes commands as `command(client)`, so builders
+ * must return a function — not a plain object — or `client.request()` will
+ * throw `<arg> is not a function`.
  */
 export function searchRegistry(query: RegistrySearchQuery): SdkRestCommand<{data: RegistryExtension[]; meta?: {filter_count?: number}}> {
   const params = new URLSearchParams();
@@ -80,62 +84,62 @@ export function searchRegistry(query: RegistrySearchQuery): SdkRestCommand<{data
   if (query.type) params.set('type', query.type);
   if (query.sandbox !== undefined) params.set('sandbox', String(query.sandbox));
   const qs = params.toString();
-  return {
+  return () => ({
     method: 'GET',
     path: `/extensions/registry${qs ? `?${qs}` : ''}`,
-  };
+  });
 }
 
 /**
  * Build a RestCommand that fetches metadata for a single registry extension by UUID.
  */
 export function describeRegistryExtension(extensionId: string): SdkRestCommand<{data: RegistryExtension}> {
-  return {
+  return () => ({
     method: 'GET',
     path: `/extensions/registry/extension/${encodeURIComponent(extensionId)}`,
-  };
+  });
 }
 
 /**
  * Build a RestCommand that installs a registry extension.
  */
 export function installRegistryExtension(extensionId: string, version: string): SdkRestCommand<unknown> {
-  return {
+  return () => ({
     body: JSON.stringify({extension: extensionId, version}),
     method: 'POST',
     path: '/extensions/registry/install',
-  };
+  });
 }
 
 /**
  * Build a RestCommand that uninstalls an installed registry extension by its `directus_extensions.id` PK.
  */
 export function uninstallRegistryExtension(pk: string): SdkRestCommand<unknown> {
-  return {
+  return () => ({
     method: 'DELETE',
     path: `/extensions/registry/uninstall/${encodeURIComponent(pk)}`,
-  };
+  });
 }
 
 /**
  * Build a RestCommand that reinstalls a registry extension by the registry extension UUID.
  */
 export function reinstallRegistryExtension(extensionId: string): SdkRestCommand<unknown> {
-  return {
+  return () => ({
     body: JSON.stringify({extension: extensionId}),
     method: 'POST',
     path: '/extensions/registry/reinstall',
-  };
+  });
 }
 
 /**
  * Build a RestCommand that lists all installed extensions.
  */
 export function listInstalledExtensions(): SdkRestCommand<InstalledExtension[] | {data: InstalledExtension[]}> {
-  return {
+  return () => ({
     method: 'GET',
     path: '/extensions/',
-  };
+  });
 }
 
 /**
