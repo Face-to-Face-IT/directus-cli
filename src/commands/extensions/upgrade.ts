@@ -3,6 +3,7 @@ import {Args, Flags} from '@oclif/core';
 import {BaseCommand} from '../../base-command.js';
 import {
   describeRegistryExtension,
+  getInstalledExtensionName,
   installRegistryExtension,
   parseVersionedIdentifier,
   pickLatestVersion,
@@ -46,16 +47,26 @@ export default class ExtensionsUpgrade extends BaseCommand<typeof ExtensionsUpgr
     const {identifier, version} = parseVersionedIdentifier(args.extension);
     const installed = await resolveInstalledExtension(this.client, identifier);
     const pk = installed.meta?.id ?? installed.id;
+    const registryName = getInstalledExtensionName(installed);
+    // `displayName` is only used in log/error messages. Registry lookups MUST
+    // use the resolved extension name; falling back to the user-provided
+    // identifier would let a directus_extensions row UUID leak into the
+    // registry endpoint (where it would be treated as a registry UUID and 404).
+    const displayName = registryName ?? identifier;
 
     if (!pk) {
-      this.error(`Could not determine the directus_extensions row id for "${installed.name}".`);
+      this.error(`Could not determine the directus_extensions row id for "${displayName}".`);
     }
 
     if (installed.meta?.source && installed.meta.source !== 'registry') {
-      this.error(`Extension "${installed.name}" has source "${installed.meta.source}" and cannot be upgraded via the API.`);
+      this.error(`Extension "${displayName}" has source "${installed.meta.source}" and cannot be upgraded via the API.`);
     }
 
-    const registry = await resolveRegistryExtension(this.client, installed.name);
+    if (!registryName) {
+      this.error(`Could not determine the extension name for "${displayName}". The installed row has no schema.name or name field, so the registry cannot be queried. Pass the extension name instead of a row id.`);
+    }
+
+    const registry = await resolveRegistryExtension(this.client, registryName);
     const details = await this.client.request(describeRegistryExtension(registry.id));
 
     let targetVersion: string;
@@ -73,22 +84,22 @@ export default class ExtensionsUpgrade extends BaseCommand<typeof ExtensionsUpgr
     const currentVersion = installed.schema?.version ?? 'unknown';
 
     if (currentVersion === targetVersion) {
-      this.log(`Extension "${installed.name}" is already at version ${targetVersion}. Nothing to do.`);
+      this.log(`Extension "${displayName}" is already at version ${targetVersion}. Nothing to do.`);
       return;
     }
 
     if (!flags.yes) {
-      const confirmed = await this.confirm(`Upgrade "${installed.name}" from ${currentVersion} to ${targetVersion}? The extension will be briefly unavailable. (yes/no)`);
+      const confirmed = await this.confirm(`Upgrade "${displayName}" from ${currentVersion} to ${targetVersion}? The extension will be briefly unavailable. (yes/no)`);
       if (!confirmed) {
         this.log('Cancelled.');
         return;
       }
     }
 
-    this.log(`Uninstalling ${installed.name}@${currentVersion} …`);
+    this.log(`Uninstalling ${displayName}@${currentVersion} …`);
     await this.client.request(uninstallRegistryExtension(pk));
 
-    this.log(`Installing ${installed.name}@${targetVersion} …`);
+    this.log(`Installing ${displayName}@${targetVersion} …`);
     try {
       await this.client.request(installRegistryExtension(registry.id, targetVersion));
     } catch (error) {
@@ -97,7 +108,7 @@ export default class ExtensionsUpgrade extends BaseCommand<typeof ExtensionsUpgr
       this.error(`Upgrade failed after uninstall. The extension is currently removed from the target instance. You can retry with: ${retryCmd}\nOriginal error: ${originalMessage}`);
     }
 
-    this.log(`Extension "${installed.name}" upgraded to ${targetVersion}.`);
+    this.log(`Extension "${displayName}" upgraded to ${targetVersion}.`);
   }
 
   private async confirm(prompt: string): Promise<boolean> {
