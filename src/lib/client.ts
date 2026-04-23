@@ -133,10 +133,11 @@ export class DirectusClient {
    * SDK's composable reads `refresh_token` from its internal storage and
    * silently ignores the one passed via its options argument. Each CLI
    * invocation is a fresh Node process with empty in-memory SDK storage, so
-   * the SDK would always POST `{ mode: 'cookie' }` with no token and the
-   * server responds: "The refresh token is required in either the payload or
-   * cookie." We therefore POST `/auth/refresh` directly with mode=json + the
-   * persisted refresh token.
+   * in this `authentication('json', ...)` client configuration the SDK refresh
+   * request would still be sent in JSON mode but without the persisted
+   * `refresh_token`, and the server responds: "The refresh token is required
+   * in either the payload or cookie." We therefore POST `/auth/refresh`
+   * directly with mode=json + the persisted refresh token.
    */
   async refreshAccessToken(): Promise<undefined | {accessToken: string; expires?: number; refreshToken?: string}> {
     if (!this.refreshToken) {
