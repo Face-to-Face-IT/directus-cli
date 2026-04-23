@@ -1,7 +1,7 @@
 import {Args} from '@oclif/core';
 
 import {BaseCommand} from '../../base-command.js';
-import {describeRegistryExtension, resolveRegistryExtension} from '../../lib/extensions-registry.js';
+import {describeRegistryExtension, resolveRegistryExtension, unwrapOne} from '../../lib/extensions-registry.js';
 
 /**
  * Show metadata and available versions for a registry extension.
@@ -31,7 +31,7 @@ export default class ExtensionsInfo extends BaseCommand<typeof ExtensionsInfo> {
     const resolved = await resolveRegistryExtension(this.client, args.extension);
     const full = await this.client.request(describeRegistryExtension(resolved.id));
 
-    const ext = full.data;
+    const ext = unwrapOne(full);
     const data = {
       description: ext.description ?? null,
       host: ext.host ?? null,

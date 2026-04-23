@@ -13,6 +13,7 @@ import {
   reinstallRegistryExtension,
   resolveInstalledExtension,
   resolveRegistryExtension,
+  resolveVersionId,
   searchRegistry,
   uninstallRegistryExtension,
   unwrap,
@@ -59,11 +60,11 @@ describe('extensions-registry', () => {
   });
 
   describe('installRegistryExtension', () => {
-    it('POSTs a JSON body with extension and version', () => {
-      const cmd = installRegistryExtension('uuid-123', '1.2.3')(mockClient);
+    it('POSTs a JSON body with extension and versionId', () => {
+      const cmd = installRegistryExtension('uuid-123', 'pkg@1.2.3')(mockClient);
       expect(cmd.method).toBe('POST');
       expect(cmd.path).toBe('/extensions/registry/install');
-      expect(JSON.parse(cmd.body as string)).toEqual({extension: 'uuid-123', version: '1.2.3'});
+      expect(JSON.parse(cmd.body as string)).toEqual({extension: 'uuid-123', version: 'pkg@1.2.3'});
     });
   });
 
@@ -119,50 +120,86 @@ describe('extensions-registry', () => {
   describe('pickLatestVersion', () => {
     it('returns the first stable version', () => {
       expect(pickLatestVersion([
-        {version: '2.0.0-beta.1'},
-        {version: '1.5.0'},
-        {version: '1.4.0'},
+        {id: 'x@2.0.0-beta.1', version: '2.0.0-beta.1'},
+        {id: 'x@1.5.0', version: '1.5.0'},
+        {id: 'x@1.4.0', version: '1.4.0'},
       ])).toBe('1.5.0');
     });
 
     it('skips unsafe versions', () => {
       expect(pickLatestVersion([
-        {unsafe: true, version: '2.0.0'},
-        {version: '1.0.0'},
+        {id: 'x@2.0.0', unsafe: true, version: '2.0.0'},
+        {id: 'x@1.0.0', version: '1.0.0'},
       ])).toBe('1.0.0');
     });
 
     it('falls back to first when all are prereleases', () => {
-      expect(pickLatestVersion([{version: '1.0.0-alpha'}, {version: '0.9.0-rc'}])).toBe('1.0.0-alpha');
+      expect(pickLatestVersion([
+        {id: 'x@1.0.0-alpha', version: '1.0.0-alpha'},
+        {id: 'x@0.9.0-rc', version: '0.9.0-rc'},
+      ])).toBe('1.0.0-alpha');
     });
 
     it('skips unsafe entries even when they appear before stable ones in the list', () => {
       expect(pickLatestVersion([
-        {unsafe: true, version: '3.0.0'},
-        {unsafe: true, version: '2.0.0-beta'},
-        {version: '1.5.0-rc'},
-        {version: '1.4.0'},
+        {id: 'x@3.0.0', unsafe: true, version: '3.0.0'},
+        {id: 'x@2.0.0-beta', unsafe: true, version: '2.0.0-beta'},
+        {id: 'x@1.5.0-rc', version: '1.5.0-rc'},
+        {id: 'x@1.4.0', version: '1.4.0'},
       ])).toBe('1.4.0');
     });
 
     it('returns the first safe prerelease when no safe stable version exists', () => {
       expect(pickLatestVersion([
-        {unsafe: true, version: '2.0.0'},
-        {version: '1.0.0-beta.2'},
-        {version: '1.0.0-beta.1'},
+        {id: 'x@2.0.0', unsafe: true, version: '2.0.0'},
+        {id: 'x@1.0.0-beta.2', version: '1.0.0-beta.2'},
+        {id: 'x@1.0.0-beta.1', version: '1.0.0-beta.1'},
       ])).toBe('1.0.0-beta.2');
     });
 
     it('throws when every version is unsafe', () => {
       expect(() => pickLatestVersion([
-        {unsafe: true, version: '2.0.0'},
-        {unsafe: true, version: '1.0.0'},
+        {id: 'x@2.0.0', unsafe: true, version: '2.0.0'},
+        {id: 'x@1.0.0', unsafe: true, version: '1.0.0'},
       ])).toThrow(/no safe published versions/i);
     });
 
     it('throws when no versions are available', () => {
       expect(() => pickLatestVersion([])).toThrow(/no published versions/i);
       expect(() => pickLatestVersion()).toThrow(/no published versions/i);
+    });
+  });
+
+  describe('resolveVersionId', () => {
+    const versions = [
+      {id: 'pkg@2.0.0', version: '2.0.0'},
+      {id: 'pkg@1.5.0', version: '1.5.0'},
+      {id: 'pkg@1.0.0', unsafe: true, version: '1.0.0'},
+    ];
+
+    it('returns the latest safe stable version when version is undefined', () => {
+      expect(resolveVersionId(versions, undefined)).toEqual({id: 'pkg@2.0.0', version: '2.0.0'});
+    });
+
+    it('returns the latest when version is "latest"', () => {
+      expect(resolveVersionId(versions, 'latest')).toEqual({id: 'pkg@2.0.0', version: '2.0.0'});
+    });
+
+    it('matches an exact semver and returns the matching registry id', () => {
+      expect(resolveVersionId(versions, '1.5.0')).toEqual({id: 'pkg@1.5.0', version: '1.5.0'});
+    });
+
+    it('throws when the requested version is unknown', () => {
+      expect(() => resolveVersionId(versions, '9.9.9')).toThrow(/not available/i);
+    });
+
+    it('throws when the requested version is unsafe', () => {
+      expect(() => resolveVersionId(versions, '1.0.0')).toThrow(/unsafe/i);
+    });
+
+    it('throws when no versions are published', () => {
+      expect(() => resolveVersionId([], '1.0.0')).toThrow(/no published versions/i);
+      expect(() => resolveVersionId(undefined, 'latest')).toThrow(/no published versions/i);
     });
   });
 

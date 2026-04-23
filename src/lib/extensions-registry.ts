@@ -27,6 +27,12 @@ export interface RegistryExtension {
  */
 export interface RegistryExtensionVersion {
   host_version?: null | string;
+  /**
+   * Opaque registry-assigned version identifier (e.g. `@scope__name@1.2.3`).
+   * The install endpoint's `version` field expects this value, NOT the semver
+   * string in `.version`. See `directus/api/src/services/extensions.ts#preInstall`.
+   */
+  id: string;
   publish_date?: null | string;
   type?: string;
   unsafe?: boolean;
@@ -88,7 +94,7 @@ export function getInstalledExtensionName(e: InstalledExtension): string | undef
  * must return a function — not a plain object — or `client.request()` will
  * throw `<arg> is not a function`.
  */
-export function searchRegistry(query: RegistrySearchQuery): SdkRestCommand<{data: RegistryExtension[]; meta?: {filter_count?: number}}> {
+export function searchRegistry(query: RegistrySearchQuery): SdkRestCommand<RegistryExtension[] | {data: RegistryExtension[]; meta?: {filter_count?: number}}> {
   const params = new URLSearchParams();
   if (query.search) params.set('search', query.search);
   if (query.limit !== undefined) params.set('limit', String(query.limit));
@@ -104,8 +110,12 @@ export function searchRegistry(query: RegistrySearchQuery): SdkRestCommand<{data
 
 /**
  * Build a RestCommand that fetches metadata for a single registry extension by UUID.
+ *
+ * Note on response shape: Directus returns `{data: {...}}`, but the SDK's
+ * `rest()` transport unwraps the envelope and yields the bare object. Callers
+ * should treat the result as `RegistryExtension`, not `{data: ...}`.
  */
-export function describeRegistryExtension(extensionId: string): SdkRestCommand<{data: RegistryExtension}> {
+export function describeRegistryExtension(extensionId: string): SdkRestCommand<RegistryExtension | {data: RegistryExtension}> {
   return () => ({
     method: 'GET',
     path: `/extensions/registry/extension/${encodeURIComponent(extensionId)}`,
@@ -113,14 +123,59 @@ export function describeRegistryExtension(extensionId: string): SdkRestCommand<{
 }
 
 /**
- * Build a RestCommand that installs a registry extension.
+ * Normalize a single-object response that may or may not be wrapped in `{data: ...}`.
  */
-export function installRegistryExtension(extensionId: string, version: string): SdkRestCommand<unknown> {
+export function unwrapOne<T>(result: T | {data?: T}): T {
+  if (result && typeof result === 'object' && 'data' in result && (result as {data?: T}).data !== undefined) {
+    return (result as {data: T}).data;
+  }
+
+  return result as T;
+}
+
+/**
+ * Build a RestCommand that installs a registry extension.
+ *
+ * `versionId` must be the registry-assigned id from `versions[].id`, not the
+ * semver string. The server matches the request's `version` field against
+ * `versions[].id` and throws `FORBIDDEN` on a miss.
+ */
+export function installRegistryExtension(extensionId: string, versionId: string): SdkRestCommand<unknown> {
   return () => ({
-    body: JSON.stringify({extension: extensionId, version}),
+    body: JSON.stringify({extension: extensionId, version: versionId}),
     method: 'POST',
     path: '/extensions/registry/install',
   });
+}
+
+/**
+ * Resolve a user-facing semver (or `latest`) to the registry-assigned version id.
+ * Throws if the requested version is unknown or flagged `unsafe`.
+ */
+export function resolveVersionId(
+  versions: RegistryExtensionVersion[] | undefined,
+  versionOrLatest: string | undefined,
+): {id: string; version: string} {
+  if (!versions || versions.length === 0) {
+    throw new Error('Extension has no published versions in the registry.');
+  }
+
+  if (!versionOrLatest || versionOrLatest === 'latest') {
+    const latest = pickLatestVersionEntry(versions);
+    return {id: latest.id, version: latest.version};
+  }
+
+  const match = versions.find(v => v.version === versionOrLatest);
+  if (!match) {
+    const available = versions.map(v => v.version);
+    throw new Error(`Version "${versionOrLatest}" is not available. Available: ${available.slice(0, 10).join(', ')}${available.length > 10 ? ', …' : ''}`);
+  }
+
+  if (match.unsafe) {
+    throw new Error(`Version "${versionOrLatest}" is flagged unsafe and cannot be installed.`);
+  }
+
+  return {id: match.id, version: match.version};
 }
 
 /**
@@ -173,11 +228,11 @@ export async function resolveRegistryExtension(
 ): Promise<RegistryExtension> {
   if (isUuid(identifier)) {
     const res = await client.request(describeRegistryExtension(identifier));
-    return res.data;
+    return unwrapOne(res);
   }
 
   const res = await client.request(searchRegistry({limit: 25, search: identifier}));
-  const matches = res.data ?? [];
+  const matches = unwrap(res);
 
   if (matches.length === 0) {
     throw new Error(`No registry extension matches "${identifier}".`);
@@ -236,6 +291,14 @@ export async function resolveInstalledExtension(
  * Throws if every published version is unsafe.
  */
 export function pickLatestVersion(versions: RegistryExtensionVersion[] | undefined): string {
+  return pickLatestVersionEntry(versions).version;
+}
+
+/**
+ * Same selection rules as `pickLatestVersion`, but returns the full version entry
+ * (so callers can access the registry-assigned `id` needed by the install endpoint).
+ */
+export function pickLatestVersionEntry(versions: RegistryExtensionVersion[] | undefined): RegistryExtensionVersion {
   if (!versions || versions.length === 0) {
     throw new Error('Extension has no published versions in the registry.');
   }
@@ -246,8 +309,7 @@ export function pickLatestVersion(versions: RegistryExtensionVersion[] | undefin
   }
 
   const stable = safe.find(v => !isPrerelease(v.version));
-  const chosen = stable ?? safe[0]!;
-  return chosen.version;
+  return stable ?? safe[0]!;
 }
 
 /**

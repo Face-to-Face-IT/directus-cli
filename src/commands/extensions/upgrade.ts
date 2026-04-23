@@ -6,10 +6,11 @@ import {
   getInstalledExtensionName,
   installRegistryExtension,
   parseVersionedIdentifier,
-  pickLatestVersion,
   resolveInstalledExtension,
   resolveRegistryExtension,
+  resolveVersionId,
   uninstallRegistryExtension,
+  unwrapOne,
 } from '../../lib/extensions-registry.js';
 
 /**
@@ -67,18 +68,19 @@ export default class ExtensionsUpgrade extends BaseCommand<typeof ExtensionsUpgr
     }
 
     const registry = await resolveRegistryExtension(this.client, registryName);
-    const details = await this.client.request(describeRegistryExtension(registry.id));
+    const details = unwrapOne(await this.client.request(describeRegistryExtension(registry.id)));
 
+    // Resolve the target version id BEFORE uninstalling. If the requested
+    // version is unknown or unsafe, we bail out with the extension still
+    // installed rather than leaving the instance in a half-upgraded state.
+    let targetVersionId: string;
     let targetVersion: string;
-    if (!version || version === 'latest') {
-      targetVersion = pickLatestVersion(details.data.versions);
-    } else {
-      const available = (details.data.versions ?? []).map(v => v.version);
-      if (!available.includes(version)) {
-        this.error(`Version "${version}" is not available for "${registry.name}". Available: ${available.slice(0, 10).join(', ')}${available.length > 10 ? ', …' : ''}`);
-      }
-
-      targetVersion = version;
+    try {
+      const picked = resolveVersionId(details.versions, version);
+      targetVersionId = picked.id;
+      targetVersion = picked.version;
+    } catch (error) {
+      this.error(`${(error as Error).message} (extension: ${registry.name})`);
     }
 
     const currentVersion = installed.schema?.version ?? 'unknown';
@@ -101,7 +103,7 @@ export default class ExtensionsUpgrade extends BaseCommand<typeof ExtensionsUpgr
 
     this.log(`Installing ${displayName}@${targetVersion} …`);
     try {
-      await this.client.request(installRegistryExtension(registry.id, targetVersion));
+      await this.client.request(installRegistryExtension(registry.id, targetVersionId));
     } catch (error) {
       const retryCmd = `directus-cli extensions install ${registry.name}@${targetVersion}`;
       const originalMessage = (error as Error).message;

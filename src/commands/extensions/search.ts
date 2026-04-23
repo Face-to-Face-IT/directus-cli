@@ -1,7 +1,7 @@
 import {Args, Flags} from '@oclif/core';
 
 import {BaseCommand} from '../../base-command.js';
-import {searchRegistry} from '../../lib/extensions-registry.js';
+import {searchRegistry, unwrap} from '../../lib/extensions-registry.js';
 
 /**
  * Search the Directus marketplace registry for extensions.
@@ -54,7 +54,10 @@ export default class ExtensionsSearch extends BaseCommand<typeof ExtensionsSearc
       type: flags.type,
     }));
 
-    const data = (result.data ?? []).map(ext => ({
+    const items = unwrap(result);
+    const meta = Array.isArray(result) ? undefined : result.meta;
+
+    const data = items.map(ext => ({
       description: ext.description ?? '',
       downloads: ext.total_downloads ?? ext.downloads ?? 0,
       id: ext.id,
@@ -67,8 +70,8 @@ export default class ExtensionsSearch extends BaseCommand<typeof ExtensionsSearc
     }));
 
     this.outputFormatted(data, {
-      filterCount: result.meta?.filter_count,
-      totalCount: result.meta?.filter_count,
+      filterCount: meta?.filter_count,
+      totalCount: meta?.filter_count,
     });
   }
 }
