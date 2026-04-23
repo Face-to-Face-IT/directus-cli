@@ -29,7 +29,7 @@ describe('extensions-registry', () => {
     it('builds a GET command with encoded query params', () => {
       const cmd = searchRegistry({
         limit: 10, offset: 5, sandbox: true, search: 'computed', type: 'interface',
-      })();
+      })(mockClient);
       expect(cmd.method).toBe('GET');
       expect(cmd.path).toContain('/extensions/registry?');
       expect(cmd.path).toContain('search=computed');
@@ -40,7 +40,7 @@ describe('extensions-registry', () => {
     });
 
     it('omits the querystring when no params are provided', () => {
-      const cmd = searchRegistry({})();
+      const cmd = searchRegistry({})(mockClient);
       expect(cmd.path).toBe('/extensions/registry');
     });
 
@@ -51,7 +51,7 @@ describe('extensions-registry', () => {
 
   describe('describeRegistryExtension', () => {
     it('URL-encodes the extension id', () => {
-      const cmd = describeRegistryExtension('abc 123')();
+      const cmd = describeRegistryExtension('abc 123')(mockClient);
       expect(cmd.method).toBe('GET');
       expect(cmd.path).toBe('/extensions/registry/extension/abc%20123');
     });
@@ -59,7 +59,7 @@ describe('extensions-registry', () => {
 
   describe('installRegistryExtension', () => {
     it('POSTs a JSON body with extension and version', () => {
-      const cmd = installRegistryExtension('uuid-123', '1.2.3')();
+      const cmd = installRegistryExtension('uuid-123', '1.2.3')(mockClient);
       expect(cmd.method).toBe('POST');
       expect(cmd.path).toBe('/extensions/registry/install');
       expect(JSON.parse(cmd.body as string)).toEqual({extension: 'uuid-123', version: '1.2.3'});
@@ -68,7 +68,7 @@ describe('extensions-registry', () => {
 
   describe('uninstallRegistryExtension', () => {
     it('builds a DELETE with the encoded pk', () => {
-      const cmd = uninstallRegistryExtension('pk-1')();
+      const cmd = uninstallRegistryExtension('pk-1')(mockClient);
       expect(cmd.method).toBe('DELETE');
       expect(cmd.path).toBe('/extensions/registry/uninstall/pk-1');
     });
@@ -76,7 +76,7 @@ describe('extensions-registry', () => {
 
   describe('reinstallRegistryExtension', () => {
     it('POSTs a JSON body with the extension id', () => {
-      const cmd = reinstallRegistryExtension('uuid-456')();
+      const cmd = reinstallRegistryExtension('uuid-456')(mockClient);
       expect(cmd.method).toBe('POST');
       expect(cmd.path).toBe('/extensions/registry/reinstall');
       expect(JSON.parse(cmd.body as string)).toEqual({extension: 'uuid-456'});

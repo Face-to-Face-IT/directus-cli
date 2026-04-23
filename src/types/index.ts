@@ -178,7 +178,7 @@ export interface SdkQuery {
  *  - Custom builders in this repo (`src/lib/extensions-registry.ts`) must
  *    return functions to be compatible with the SDK.
  */
-export type SdkRestCommand<TResult> = ((client?: unknown) => {
+export type SdkRestCommand<TResult> = ((client: unknown) => {
   body?: unknown;
   method: string;
   params?: unknown;
