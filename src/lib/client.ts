@@ -145,7 +145,7 @@ export class DirectusClient {
     }
 
     try {
-      const refreshUrl = new URL('/auth/refresh', this.url).toString();
+      const refreshUrl = buildRefreshUrl(this.url);
       // eslint-disable-next-line n/no-unsupported-features/node-builtins -- global fetch is available in Node 20+
       const response = await fetch(refreshUrl, {
         // eslint-disable-next-line camelcase -- refresh_token is the Directus API field name
@@ -270,6 +270,19 @@ function sleep(ms: number): Promise<void> {
   return new Promise(resolve => {
     setTimeout(resolve, ms);
   });
+}
+
+/**
+ * Build the `/auth/refresh` URL relative to a Directus base URL, preserving
+ * any subpath configured on the instance (e.g. `https://example.com/directus/`
+ * must refresh at `https://example.com/directus/auth/refresh`, not at the
+ * host root). Passing a root-absolute path to the URL constructor discards
+ * the base pathname, so we resolve a relative segment against a base that is
+ * guaranteed to have a trailing slash.
+ */
+export function buildRefreshUrl(baseUrl: string): string {
+  const normalizedBase = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`;
+  return new URL('auth/refresh', normalizedBase).toString();
 }
 
 /**

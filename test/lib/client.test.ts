@@ -107,4 +107,45 @@ describe('DirectusClient.refreshAccessToken', () => {
     const result = await client.refreshAccessToken();
     expect(result).toBeUndefined();
   });
+
+  it('POSTs to the refresh endpoint relative to a base URL pathname', async () => {
+    mockFetch.mockResolvedValue({
+      json: async () => ({
+        data: {access_token: 'new-access', expires: 900_000, refresh_token: 'new-refresh'},
+      }),
+      ok: true,
+      status: 200,
+    });
+
+    const client = createClient({
+      refreshToken: 'stored-refresh',
+      url: 'https://example.test/directus/',
+    });
+
+    await client.refreshAccessToken();
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    const [url] = mockFetch.mock.calls[0]!;
+    expect(url).toBe('https://example.test/directus/auth/refresh');
+  });
+
+  it('preserves the base pathname even when the URL is missing a trailing slash', async () => {
+    mockFetch.mockResolvedValue({
+      json: async () => ({
+        data: {access_token: 'new-access', expires: 900_000, refresh_token: 'new-refresh'},
+      }),
+      ok: true,
+      status: 200,
+    });
+
+    const client = createClient({
+      refreshToken: 'stored-refresh',
+      url: 'https://example.test/directus',
+    });
+
+    await client.refreshAccessToken();
+
+    const [url] = mockFetch.mock.calls[0]!;
+    expect(url).toBe('https://example.test/directus/auth/refresh');
+  });
 });
