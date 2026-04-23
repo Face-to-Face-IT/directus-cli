@@ -128,6 +128,15 @@ export class DirectusClient {
 
   /**
    * Refresh the access token using the stored refresh token.
+   *
+   * We bypass the Directus SDK's `authentication().refresh()` here because the
+   * SDK's composable reads `refresh_token` from its internal storage and
+   * silently ignores the one passed via its options argument. Each CLI
+   * invocation is a fresh Node process with empty in-memory SDK storage, so
+   * the SDK would always POST `{ mode: 'cookie' }` with no token and the
+   * server responds: "The refresh token is required in either the payload or
+   * cookie." We therefore POST `/auth/refresh` directly with mode=json + the
+   * persisted refresh token.
    */
   async refreshAccessToken(): Promise<undefined | {accessToken: string; expires?: number; refreshToken?: string}> {
     if (!this.refreshToken) {
@@ -135,7 +144,32 @@ export class DirectusClient {
     }
 
     try {
-      const result = await this.client.refresh();
+      const refreshUrl = new URL('/auth/refresh', this.url).toString();
+      // eslint-disable-next-line n/no-unsupported-features/node-builtins -- global fetch is available in Node 20+
+      const response = await fetch(refreshUrl, {
+        // eslint-disable-next-line camelcase -- refresh_token is the Directus API field name
+        body: JSON.stringify({mode: 'json', refresh_token: this.refreshToken}),
+        headers: {'Content-Type': 'application/json'},
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        let detail = `HTTP ${response.status}`;
+        try {
+          const body = (await response.json()) as {errors?: Array<{message?: string}>};
+          detail = body?.errors?.[0]?.message ?? detail;
+        } catch {
+          /* ignore body parse errors */
+        }
+
+        throw new DirectusCliError(`Token refresh failed: ${detail}`, response.status);
+      }
+
+      const payload = (await response.json()) as {
+        data?: {access_token?: string; expires?: number; refresh_token?: string};
+      };
+      const result = payload?.data ?? (payload as {access_token?: string; expires?: number; refresh_token?: string});
+
       if (result.access_token) {
         this.client.setToken(result.access_token);
         return {
