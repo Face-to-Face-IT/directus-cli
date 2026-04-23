@@ -2,6 +2,7 @@ import {Args} from '@oclif/core';
 
 import {BaseCommand} from '../../base-command.js';
 import {
+  getInstalledExtensionName,
   reinstallRegistryExtension,
   resolveInstalledExtension,
   resolveRegistryExtension,
@@ -32,16 +33,17 @@ export default class ExtensionsReinstall extends BaseCommand<typeof ExtensionsRe
 
     // Confirm the extension is installed + registry-sourced.
     const installed = await resolveInstalledExtension(this.client, args.extension);
+    const name = getInstalledExtensionName(installed) ?? args.extension;
 
     if (installed.meta?.source && installed.meta.source !== 'registry') {
-      this.error(`Extension "${installed.name}" has source "${installed.meta.source}" and cannot be reinstalled via the API.`);
+      this.error(`Extension "${name}" has source "${installed.meta.source}" and cannot be reinstalled via the API.`);
     }
 
     // The reinstall endpoint expects the registry extension UUID, not the row PK.
-    const registry = await resolveRegistryExtension(this.client, installed.name);
+    const registry = await resolveRegistryExtension(this.client, name);
 
-    this.log(`Reinstalling ${installed.name} … (this may take up to 2 minutes)`);
+    this.log(`Reinstalling ${name} … (this may take up to 2 minutes)`);
     await this.client.request(reinstallRegistryExtension(registry.id));
-    this.log(`Extension "${installed.name}" reinstalled.`);
+    this.log(`Extension "${name}" reinstalled.`);
   }
 }

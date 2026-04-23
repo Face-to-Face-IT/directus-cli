@@ -1,7 +1,11 @@
 import {Args, Flags} from '@oclif/core';
 
 import {BaseCommand} from '../../base-command.js';
-import {resolveInstalledExtension, uninstallRegistryExtension} from '../../lib/extensions-registry.js';
+import {
+  getInstalledExtensionName,
+  resolveInstalledExtension,
+  uninstallRegistryExtension,
+} from '../../lib/extensions-registry.js';
 
 /**
  * Uninstall a registry-sourced extension.
@@ -34,17 +38,18 @@ export default class ExtensionsUninstall extends BaseCommand<typeof ExtensionsUn
 
     const installed = await resolveInstalledExtension(this.client, args.extension);
     const pk = installed.meta?.id ?? installed.id;
+    const name = getInstalledExtensionName(installed) ?? args.extension;
 
     if (!pk) {
-      this.error(`Could not determine the directus_extensions row id for "${installed.name}".`);
+      this.error(`Could not determine the directus_extensions row id for "${name}".`);
     }
 
     if (installed.meta?.source && installed.meta.source !== 'registry') {
-      this.error(`Extension "${installed.name}" has source "${installed.meta.source}" and cannot be uninstalled via the API. Only registry-sourced extensions are supported.`);
+      this.error(`Extension "${name}" has source "${installed.meta.source}" and cannot be uninstalled via the API. Only registry-sourced extensions are supported.`);
     }
 
     if (!flags.yes) {
-      const confirmed = await this.confirm(`Are you sure you want to uninstall "${installed.name}"? (yes/no)`);
+      const confirmed = await this.confirm(`Are you sure you want to uninstall "${name}"? (yes/no)`);
       if (!confirmed) {
         this.log('Cancelled.');
         return;
@@ -52,7 +57,7 @@ export default class ExtensionsUninstall extends BaseCommand<typeof ExtensionsUn
     }
 
     await this.client.request(uninstallRegistryExtension(pk));
-    this.log(`Extension "${installed.name}" uninstalled.`);
+    this.log(`Extension "${name}" uninstalled.`);
   }
 
   private async confirm(prompt: string): Promise<boolean> {
