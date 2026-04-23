@@ -5,8 +5,9 @@ import {
   describeRegistryExtension,
   installRegistryExtension,
   parseVersionedIdentifier,
-  pickLatestVersion,
   resolveRegistryExtension,
+  resolveVersionId,
+  unwrapOne,
 } from '../../lib/extensions-registry.js';
 
 /**
@@ -37,23 +38,21 @@ export default class ExtensionsInstall extends BaseCommand<typeof ExtensionsInst
     const {identifier, version} = parseVersionedIdentifier(args.extension);
     const resolved = await resolveRegistryExtension(this.client, identifier);
 
+    // Always fetch full details: `resolved` from search lacks `versions[].id`,
+    // which the install endpoint requires (server matches on id, not semver).
+    const full = unwrapOne(await this.client.request(describeRegistryExtension(resolved.id)));
+    let targetVersionId: string;
     let targetVersion: string;
-    if (!version || version === 'latest') {
-      const full = await this.client.request(describeRegistryExtension(resolved.id));
-      targetVersion = pickLatestVersion(full.data.versions);
-    } else {
-      // Validate the requested version exists in the registry
-      const full = await this.client.request(describeRegistryExtension(resolved.id));
-      const available = (full.data.versions ?? []).map(v => v.version);
-      if (!available.includes(version)) {
-        this.error(`Version "${version}" is not available for "${resolved.name}". Available: ${available.slice(0, 10).join(', ')}${available.length > 10 ? ', …' : ''}`);
-      }
-
-      targetVersion = version;
+    try {
+      const picked = resolveVersionId(full.versions, version);
+      targetVersionId = picked.id;
+      targetVersion = picked.version;
+    } catch (error) {
+      this.error(`${(error as Error).message} (extension: ${resolved.name})`);
     }
 
     this.log(`Installing ${resolved.name}@${targetVersion} … (this may take up to 2 minutes)`);
-    const result = await this.client.request(installRegistryExtension(resolved.id, targetVersion));
+    const result = await this.client.request(installRegistryExtension(resolved.id, targetVersionId));
 
     this.outputFormatted({
       extension: resolved.name,
