@@ -58,11 +58,22 @@ export abstract class BaseCommand<T extends typeof Command> extends Command {
 
     // Access verbose flag carefully - might not be available if init failed
     const flags = this.flags as unknown as undefined | {verbose?: boolean};
-    if (flags?.verbose && directusError.errors) {
-      for (const err of directusError.errors) {
-        if (err.extensions) {
-          parts.push(`\n  ${JSON.stringify(err.extensions)}`);
+    if (flags?.verbose) {
+      // Structured Directus error extensions (if any).
+      if (directusError.errors) {
+        for (const err of directusError.errors) {
+          if (err.extensions) {
+            parts.push(`\n  ${JSON.stringify(err.extensions)}`);
+          }
         }
+      }
+
+      // Preserve the original stack for non-Directus exceptions (e.g. a plain
+      // JS `TypeError` bubbling up from the SDK). Without this, users running
+      // `--verbose` see only the message and can't diagnose where it came from.
+      const stack = error?.stack;
+      if (stack) {
+        parts.push(`\n${stack}`);
       }
     }
 

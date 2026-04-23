@@ -164,15 +164,27 @@ export interface SdkQuery {
 
 /**
  * SDK RestCommand type.
- * This represents a command returned by SDK functions like readItems(),
- * readItem(), createItem(), etc.
+ *
+ * Commands returned by `@directus/sdk` functions (`readItems()`,
+ * `readItem()`, `createItem()`, etc.) are *functions* of the form
+ * `(client) => ({method, path, body, ...})`. The SDK invokes them as
+ * `command(client)` inside `client.request()`, which means a plain object
+ * command throws `<arg> is not a function`.
+ *
+ * We keep the type broad (unknown) because:
+ *  - All current call sites cast SDK builder results via `as unknown as
+ *    SdkRestCommand<T>` — the surface type is effectively a phantom carrier
+ *    for `TResult` inference.
+ *  - Custom builders in this repo (`src/lib/extensions-registry.ts`) must
+ *    return functions to be compatible with the SDK.
  */
-export interface SdkRestCommand<TResult> {
-  /** Type marker for the expected result type */
-  __resultType?: TResult;
+export type SdkRestCommand<TResult> = ((client?: unknown) => {
   body?: unknown;
   method: string;
   params?: unknown;
   path: string;
   query?: unknown;
-}
+}) & {
+  /** Type marker for the expected result type */
+  __resultType?: TResult;
+};
