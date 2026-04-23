@@ -128,6 +128,16 @@ export class DirectusClient {
 
   /**
    * Refresh the access token using the stored refresh token.
+   *
+   * We bypass the Directus SDK's `authentication().refresh()` here because the
+   * SDK's composable reads `refresh_token` from its internal storage and
+   * silently ignores the one passed via its options argument. Each CLI
+   * invocation is a fresh Node process with empty in-memory SDK storage, so
+   * in this `authentication('json', ...)` client configuration the SDK refresh
+   * request would still be sent in JSON mode but without the persisted
+   * `refresh_token`, and the server responds: "The refresh token is required
+   * in either the payload or cookie." We therefore POST `/auth/refresh`
+   * directly with mode=json + the persisted refresh token.
    */
   async refreshAccessToken(): Promise<undefined | {accessToken: string; expires?: number; refreshToken?: string}> {
     if (!this.refreshToken) {
@@ -135,9 +145,42 @@ export class DirectusClient {
     }
 
     try {
-      const result = await this.client.refresh();
+      const refreshUrl = buildRefreshUrl(this.url);
+      // eslint-disable-next-line n/no-unsupported-features/node-builtins -- global fetch is available in Node 20+
+      const response = await fetch(refreshUrl, {
+        // eslint-disable-next-line camelcase -- refresh_token is the Directus API field name
+        body: JSON.stringify({mode: 'json', refresh_token: this.refreshToken}),
+        headers: {'Content-Type': 'application/json'},
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        let detail = `HTTP ${response.status}`;
+        try {
+          const body = (await response.json()) as {errors?: Array<{message?: string}>};
+          detail = body?.errors?.[0]?.message ?? detail;
+        } catch {
+          /* ignore body parse errors */
+        }
+
+        throw new DirectusCliError(`Token refresh failed: ${detail}`, response.status);
+      }
+
+      const payload = (await response.json()) as {
+        data?: {access_token?: string; expires?: number; refresh_token?: string};
+      };
+      const result = payload?.data ?? (payload as {access_token?: string; expires?: number; refresh_token?: string});
+
       if (result.access_token) {
         this.client.setToken(result.access_token);
+
+        // Persist the rotated refresh token so subsequent in-process refreshes
+        // use the latest value. The rotated token is also returned so callers
+        // (e.g. the config profile) can persist it to disk.
+        if (result.refresh_token) {
+          this.refreshToken = result.refresh_token;
+        }
+
         return {
           accessToken: result.access_token,
           expires: result.expires ?? undefined,
@@ -235,6 +278,19 @@ function sleep(ms: number): Promise<void> {
   return new Promise(resolve => {
     setTimeout(resolve, ms);
   });
+}
+
+/**
+ * Build the `/auth/refresh` URL relative to a Directus base URL, preserving
+ * any subpath configured on the instance (e.g. `https://example.com/directus/`
+ * must refresh at `https://example.com/directus/auth/refresh`, not at the
+ * host root). Passing a root-absolute path to the URL constructor discards
+ * the base pathname, so we resolve a relative segment against a base that is
+ * guaranteed to have a trailing slash.
+ */
+export function buildRefreshUrl(baseUrl: string): string {
+  const normalizedBase = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`;
+  return new URL('auth/refresh', normalizedBase).toString();
 }
 
 /**
